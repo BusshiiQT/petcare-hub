@@ -1,71 +1,75 @@
-# PetCare Hub 🐾  
-A clean, production-style pet care marketplace where pet owners can browse providers, request bookings, manage pets, and leave reviews — with provider-side availability and booking conflict protection.
+# 🐾 PetCare Hub
 
-**Live Demo:** https://petcare-1ewpqvn5x-busshiiqts-projects.vercel.app/
-**Repo:** https://github.com/BusshiiQT/petcare-hub
+**PetCare Hub** is a full-stack web application that connects pet owners with trusted pet care providers for services like walking, sitting, and training.
 
----
+This project was built as a **production-ready portfolio application**, focusing on clean architecture, real-world constraints, and scalable patterns.
 
-## Why this project
-PetCare Hub is a portfolio project built to demonstrate modern full-stack patterns:
-- Auth + role-based flows (Owner vs Provider)
-- Real database modeling with RLS (Row Level Security)
-- Booking lifecycle + conflict prevention
-- Production deployment on Vercel
+👉 **Live Demo:** https://YOUR-VERCEL-URL.vercel.app  
+👉 **Source Code:** https://github.com/BusshiiQT/petcare-hub
 
 ---
 
-## Core features
+## ✨ Key Features
 
-### Owner experience
-- Sign up / log in
-- Add and manage pets
-- Browse active providers
-- Request a booking (time range selection)
-- View bookings
-- Leave reviews on providers
+### 🐶 Pet Owners
+- Create and manage pet profiles
+- Browse available pet care providers
+- Request bookings with live availability validation
+- Track upcoming and past bookings
+- Leave provider reviews
 
-### Provider experience
-- Create/edit provider profile
-- Set weekly availability (schedule UI)
-- View incoming bookings
-- Booking status actions (pending/confirmed/completed/cancelled)
-- Provider dashboard overview
+### 🧑‍⚕️ Providers
+- Create a public provider profile
+- Set weekly availability schedules
+- View and manage incoming booking requests
+- Prevent overlapping bookings automatically
+- Dashboard with booking stats and ratings
 
-### Reliability / validation
-- **Server-side booking validation** checks:
-  - Provider availability for that weekday/time range
-  - Overlapping bookings (pending/confirmed)
-  - Pet ownership validation (owner can only book with their own pets)
-
----
-
-## Tech stack
-- **Next.js (App Router)**
-- **TypeScript**
-- **Supabase** (Postgres, Auth, RLS, SQL)
-- **TailwindCSS + shadcn/ui**
-- **Framer Motion** (light UI animations)
-- **Vercel** deployment
+### 🔐 Authentication & Security
+- Email/password authentication via Supabase
+- Role-aware dashboards (owner vs provider)
+- Server-side validation for bookings
+- Secure row-level access enforced via Supabase RLS
+- Service-role protected server actions for critical logic
 
 ---
 
-## Database (Supabase)
-Tables used (high level):
-- `profiles` (user profile)
-- `provider_profiles`
-- `pets`
-- `bookings`
-- `reviews`
-- `provider_availability`
+## 🧠 Technical Highlights (What Recruiters Care About)
 
-Security:
-- RLS policies ensure users only access/modify their own data.
+- **Server-side availability validation**  
+  Booking requests are validated against provider schedules and existing bookings on the server (not just the UI).
+
+- **Real-world booking logic**
+  - Prevents overlapping bookings
+  - Enforces provider working hours
+  - Handles race conditions safely
+
+- **Modern Next.js architecture**
+  - App Router
+  - Server Actions
+  - Client/Server Supabase separation
+  - Type-safe data handling
+
+- **Clean UX**
+  - Interactive availability picker
+  - Skeleton loading states
+  - Clear success/error feedback
 
 ---
 
-## Local setup
+## 🛠️ Tech Stack
 
-### 1) Install dependencies
+- **Frontend:** Next.js 16 (App Router), TypeScript, Tailwind CSS
+- **Backend:** Supabase (Postgres, Auth, Row Level Security)
+- **Deployment:** Vercel
+- **Animations:** Framer Motion
+- **State & Data:** React hooks + Supabase client
+
+---
+
+## 🚀 Getting Started (Local Setup)
+
 ```bash
+git clone https://github.com/BusshiiQT/petcare-hub.git
+cd petcare-hub
 npm install
