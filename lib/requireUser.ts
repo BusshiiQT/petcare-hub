@@ -1,6 +1,8 @@
 "use client";
 
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/lib/supabaseBrowser";
+
+
 
 export async function requireUser() {
   const { data, error } = await supabase.auth.getUser();
