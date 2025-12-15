@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseBrowser";
-
 
 import { Button } from "@/components/ui/button";
 
@@ -13,9 +13,16 @@ export function Navbar() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+
     // Get current user on load
     const loadUser = async () => {
-      const { data } = await supabase.auth.getUser();
+      const { data, error } = await supabase.auth.getUser();
+      if (error) {
+        // In case the session isn't available yet, don't hard-fail
+        console.warn("Navbar getUser error:", error.message);
+      }
+      if (!isMounted) return;
       setUserEmail(data.user?.email ?? null);
     };
 
@@ -24,11 +31,13 @@ export function Navbar() {
     // Subscribe to auth change events (login/logout)
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event: string, session: Session | null) => {
+      if (!isMounted) return;
       setUserEmail(session?.user?.email ?? null);
     });
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, []);
