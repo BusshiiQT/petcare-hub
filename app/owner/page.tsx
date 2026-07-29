@@ -6,8 +6,11 @@ import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabaseBrowser";
 import { requireUser } from "@/lib/requireUser";
 
-import { Container } from "@/components/container";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { PageShell } from "@/components/app/page-shell";
+import { PageHeader } from "@/components/app/page-header";
+import { PageSection } from "@/components/app/page-section";
+import { StatCard } from "@/components/app/stat-card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DashboardSkeleton } from "@/components/dashboard-skeleton";
 
@@ -125,22 +128,21 @@ export default function OwnerDashboardPage() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-white py-16">
-        <Container>
-          <DashboardSkeleton />
-        </Container>
-      </main>
+      <PageShell>
+        <DashboardSkeleton />
+      </PageShell>
     );
   }
 
   if (!userId) {
     return (
-      <main className="min-h-screen bg-white py-16">
-        <Container>
+      <PageShell>
+        <PageHeader
+          title="Owner dashboard"
+          description="Manage your pets, bookings, and care providers."
+        />
+        <PageSection aria-label="Sign in required">
           <Card className="max-w-md">
-            <CardHeader>
-              <CardTitle>Owner Dashboard</CardTitle>
-            </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-gray-700">
                 You need to be logged in to view your dashboard.
@@ -150,49 +152,55 @@ export default function OwnerDashboardPage() {
               </Button>
             </CardContent>
           </Card>
-        </Container>
-      </main>
+        </PageSection>
+      </PageShell>
     );
   }
 
   return (
-    <main className="min-h-screen bg-white py-16">
-      <Container>
-        {errorMsg && <p className="text-sm text-red-600 mb-4">{errorMsg}</p>}
+    <PageShell>
+      <PageHeader
+        title="Owner dashboard"
+        description="Manage your pets, review upcoming bookings, and find trusted care providers."
+        actions={
+          <>
+            <Button
+              variant="outline"
+              className="rounded-full"
+              onClick={() => router.push("/pets")}
+            >
+              Manage pets
+            </Button>
+            <Button
+              variant="outline"
+              className="rounded-full"
+              onClick={() => router.push("/bookings")}
+            >
+              View bookings
+            </Button>
+            <Button
+              className="rounded-full"
+              onClick={() => router.push("/providers")}
+            >
+              Find providers
+            </Button>
+          </>
+        }
+      />
 
-        <div className="grid gap-6 md:grid-cols-[2fr,1.5fr] mb-6">
+      {errorMsg && <p className="text-sm text-red-600">{errorMsg}</p>}
+
+      <PageSection
+        title="Overview"
+        description="A snapshot of your PetCare Hub activity."
+      >
+        <div className="grid gap-6 lg:grid-cols-[1.5fr_2fr]">
           <Card>
-            <CardHeader>
-              <CardTitle>Your PetCare Hub</CardTitle>
-            </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-sm text-gray-700">
                 Manage your pets, bookings, and explore providers from one
                 place.
               </p>
-
-              <div className="flex flex-wrap gap-3 mt-3">
-                <Button
-                  variant="outline"
-                  className="rounded-full"
-                  onClick={() => router.push("/pets")}
-                >
-                  Manage pets
-                </Button>
-                <Button
-                  variant="outline"
-                  className="rounded-full"
-                  onClick={() => router.push("/bookings")}
-                >
-                  View bookings
-                </Button>
-                <Button
-                  className="rounded-full"
-                  onClick={() => router.push("/providers")}
-                >
-                  Find providers
-                </Button>
-              </div>
 
               {totalPets > 0 && (
                 <div className="mt-3">
@@ -214,39 +222,16 @@ export default function OwnerDashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Stats</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div className="border rounded-lg px-2 py-3">
-                  <p className="text-xs text-gray-500 mb-1">Pets</p>
-                  <p className="text-xl font-semibold text-gray-900">
-                    {totalPets}
-                  </p>
-                </div>
-                <div className="border rounded-lg px-2 py-3">
-                  <p className="text-xs text-gray-500 mb-1">Bookings</p>
-                  <p className="text-xl font-semibold text-gray-900">
-                    {totalBookings}
-                  </p>
-                </div>
-                <div className="border rounded-lg px-2 py-3">
-                  <p className="text-xs text-gray-500 mb-1">Pending</p>
-                  <p className="text-xl font-semibold text-gray-900">
-                    {pendingBookings}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+            <StatCard label="Pets" value={totalPets} />
+            <StatCard label="Bookings" value={totalBookings} />
+            <StatCard label="Pending" value={pendingBookings} />
+          </div>
         </div>
+      </PageSection>
 
+      <PageSection title="Your upcoming bookings">
         <Card>
-          <CardHeader>
-            <CardTitle>Your upcoming bookings</CardTitle>
-          </CardHeader>
           <CardContent>
             {upcoming.length === 0 ? (
               <p className="text-sm text-gray-600">
@@ -292,7 +277,7 @@ export default function OwnerDashboardPage() {
             )}
           </CardContent>
         </Card>
-      </Container>
-    </main>
+      </PageSection>
+    </PageShell>
   );
 }
