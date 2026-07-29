@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabaseBrowser";
+import { requireUser } from "@/lib/requireUser";
 
 import { Container } from "@/components/container";
 import {
@@ -47,8 +48,7 @@ export default function PetsPage() {
       setIsLoading(true);
       setErrorMsg(null);
 
-      const { data: userData } = await supabase.auth.getUser();
-      const user = userData.user;
+      const user = await requireUser(() => router.replace("/auth/login"));
 
       if (!user) {
         setIsLoading(false);
@@ -74,7 +74,7 @@ export default function PetsPage() {
     };
 
     loadPets();
-  }, []);
+  }, [router]);
 
   const handleAddPet = async (e: React.FormEvent) => {
     e.preventDefault();

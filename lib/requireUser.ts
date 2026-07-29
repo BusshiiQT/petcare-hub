@@ -2,13 +2,13 @@
 
 import { supabase } from "@/lib/supabaseBrowser";
 
-
-
-export async function requireUser() {
+export async function requireUser(redirectToLogin?: () => void) {
   const { data, error } = await supabase.auth.getUser();
 
-  if (error) throw error;
-  if (!data.user) throw new Error("Not authenticated");
+  if (error || !data.user) {
+    redirectToLogin?.();
+    return null;
+  }
 
-  return { user: data.user };
+  return data.user;
 }

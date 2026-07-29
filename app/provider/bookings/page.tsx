@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabaseBrowser";
+import { requireUser } from "@/lib/requireUser";
 
 import { Container } from "@/components/container";
 import {
@@ -46,11 +47,7 @@ export default function ProviderBookingsPage() {
       setErrorMsg(null);
 
       try {
-        const { data: userData, error: userError } =
-          await supabase.auth.getUser();
-        if (userError) throw userError;
-
-        const user = userData.user;
+        const user = await requireUser(() => router.replace("/auth/login"));
         if (!user) {
           setUserId(null);
           return;
@@ -109,7 +106,7 @@ export default function ProviderBookingsPage() {
     };
 
     loadBookings();
-  }, []);
+  }, [router]);
 
   const formatDateTime = (iso: string) => {
     const d = new Date(iso);

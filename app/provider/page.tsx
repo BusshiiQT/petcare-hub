@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabaseBrowser";
+import { requireUser } from "@/lib/requireUser";
 
 import { Container } from "@/components/container";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -30,6 +31,9 @@ type BookingRow = {
   end_time: string;
   pet: { name: string }[] | null;
 };
+type ReviewSummary = {
+  rating: number | null;
+};
 
 export default function ProviderDashboardPage() {
   const router = useRouter();
@@ -47,11 +51,7 @@ export default function ProviderDashboardPage() {
       setErrorMsg(null);
 
       try {
-        const { data: userData, error: userError } =
-          await supabase.auth.getUser();
-        if (userError) throw userError;
-
-        const user = userData.user;
+        const user = await requireUser(() => router.replace("/auth/login"));
         if (!user) {
           setUserId(null);
           return;
@@ -109,8 +109,8 @@ export default function ProviderDashboardPage() {
           console.error("Error loading reviews summary:", reviewsError);
         } else if (reviewsData && reviewsData.length > 0) {
           const count = reviewsData.length;
-          const sum = reviewsData.reduce(
-            (acc: number, r: any) => acc + (r.rating ?? 0),
+          const sum = (reviewsData as ReviewSummary[]).reduce(
+            (acc, review) => acc + (review.rating ?? 0),
             0
           );
           setReviewCount(count);
@@ -128,7 +128,7 @@ export default function ProviderDashboardPage() {
     };
 
     loadDashboard();
-  }, []);
+  }, [router]);
 
   const formatLocation = (p: ProviderProfile) => {
     const parts = [p.city, p.state, p.country].filter(Boolean);

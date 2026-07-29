@@ -15,37 +15,24 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [errorDebug, setErrorDebug] = useState<string | null>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
-    setErrorDebug(null);
     setIsLoading(true);
 
-    const cleanedEmail = email.trim();
-
-    console.log("Attempting login with:", {
-      rawEmail: email,
-      cleanedEmail,
-      passwordLength: password.length,
-    });
-
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: cleanedEmail,
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
       password,
     });
 
     setIsLoading(false);
 
     if (error) {
-      console.error("Supabase login error:", error);
-      setErrorMsg(error.message || "Something went wrong logging in.");
-      setErrorDebug(JSON.stringify(error, null, 2));
+      setErrorMsg("Unable to sign in. Check your email and password.");
       return;
     }
 
-    console.log("Supabase login success:", data);
     router.push("/");
   };
 
@@ -87,12 +74,6 @@ export default function LoginPage() {
 
                 {errorMsg && (
                   <p className="text-sm text-red-600 mb-1">{errorMsg}</p>
-                )}
-
-                {errorDebug && (
-                  <pre className="text-[10px] text-gray-500 bg-gray-50 p-2 rounded border overflow-x-auto">
-                    {errorDebug}
-                  </pre>
                 )}
 
                 <Button

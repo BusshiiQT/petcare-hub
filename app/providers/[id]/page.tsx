@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseBrowser";
+import { requireUser } from "@/lib/requireUser";
 
 import { Container } from "@/components/container";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -133,8 +134,7 @@ export default function ProviderDetailPage() {
       setIsLoading(true);
       setLoadError(null);
 
-      const { data: userData } = await supabase.auth.getUser();
-      const user = userData.user;
+      const user = await requireUser(() => router.replace("/auth/login"));
 
       if (!user) {
         setUserId(null);
@@ -224,7 +224,7 @@ export default function ProviderDetailPage() {
     };
 
     loadData();
-  }, [providerId]);
+  }, [providerId, router]);
 
   const formatLocation = (p: Provider) => {
     const parts = [p.city, p.state, p.country].filter(Boolean);

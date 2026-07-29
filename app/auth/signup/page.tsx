@@ -14,40 +14,26 @@ export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [debugMsg, setDebugMsg] = useState<string | null>(null);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
     setSuccessMsg(null);
-    setDebugMsg(null);
     setIsLoading(true);
 
-    const cleanedEmail = email.trim();
-
-    console.log("Attempting signup with:", {
-      rawEmail: email,
-      cleanedEmail,
-      passwordLength: password.length,
-    });
-
-    const { data, error } = await supabase.auth.signUp({
-      email: cleanedEmail,
+    const { error } = await supabase.auth.signUp({
+      email: email.trim(),
       password,
     });
 
     setIsLoading(false);
 
-    console.log("Supabase signup result:", { data, error });
-
     if (error) {
-      setErrorMsg(error.message);
-      setDebugMsg(JSON.stringify(error, null, 2));
+      setErrorMsg("Unable to create your account. Please try again.");
       return;
     }
 
     setSuccessMsg("Account created! Check your email for a confirmation link.");
-    setDebugMsg(JSON.stringify(data, null, 2));
     setEmail("");
     setPassword("");
   };
@@ -94,12 +80,6 @@ export default function SignUpPage() {
 
                 {successMsg && (
                   <p className="text-sm text-green-600 mb-1">{successMsg}</p>
-                )}
-
-                {debugMsg && (
-                  <pre className="text-[10px] text-gray-500 bg-gray-50 p-2 rounded border overflow-x-auto">
-                    {debugMsg}
-                  </pre>
                 )}
 
                 <Button

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabaseBrowser";
+import { requireUser } from "@/lib/requireUser";
 
 import { Container } from "@/components/container";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -42,11 +43,7 @@ export default function OwnerDashboardPage() {
       setErrorMsg(null);
 
       try {
-        const { data: userData, error: userError } =
-          await supabase.auth.getUser();
-        if (userError) throw userError;
-
-        const user = userData.user;
+        const user = await requireUser(() => router.replace("/auth/login"));
         if (!user) {
           setUserId(null);
           return;
@@ -91,7 +88,7 @@ export default function OwnerDashboardPage() {
 
         if (bookingsError) {
           console.error("Error loading bookings:", bookingsError);
-          if (!errorMsg) setErrorMsg("Failed to load your bookings.");
+          setErrorMsg((current) => current ?? "Failed to load your bookings.");
         } else {
           setBookings((bookingsData || []) as BookingRow[]);
         }
@@ -104,8 +101,7 @@ export default function OwnerDashboardPage() {
     };
 
     loadDashboard();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [router]);
 
   const formatDateTime = (iso: string) => {
     const d = new Date(iso);

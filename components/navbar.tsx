@@ -17,11 +17,7 @@ export function Navbar() {
 
     // Get current user on load
     const loadUser = async () => {
-      const { data, error } = await supabase.auth.getUser();
-      if (error) {
-        // In case the session isn't available yet, don't hard-fail
-        console.warn("Navbar getUser error:", error.message);
-      }
+      const { data } = await supabase.auth.getUser();
       if (!isMounted) return;
       setUserEmail(data.user?.email ?? null);
     };

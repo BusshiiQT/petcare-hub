@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseBrowser";
+import { requireUser } from "@/lib/requireUser";
 
 import { Container } from "@/components/container";
 import {
@@ -36,15 +37,7 @@ export default function ProvidersPage() {
       setIsLoading(true);
       setErrorMsg(null);
 
-      // Check auth
-      const { data: userData, error: userError } =
-        await supabase.auth.getUser();
-
-      if (userError) {
-        console.error("Error getting user:", userError);
-      }
-
-      const user = userData?.user ?? null;
+      const user = await requireUser(() => router.replace("/auth/login"));
 
       if (!user) {
         setUserId(null);
@@ -74,7 +67,7 @@ export default function ProvidersPage() {
     };
 
     loadProviders();
-  }, []);
+  }, [router]);
 
   const formatLocation = (p: Provider) => {
     const parts = [p.city, p.state, p.country].filter(Boolean);

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseBrowser";
+import { requireUser } from "@/lib/requireUser";
 
 import { Container } from "@/components/container";
 import {
@@ -51,12 +52,7 @@ export default function AccountPage() {
       setErrorMsg(null);
 
       try {
-        // Auth
-        const { data: userData, error: userError } =
-          await supabase.auth.getUser();
-        if (userError) throw userError;
-
-        const user = userData.user;
+        const user = await requireUser(() => router.replace("/auth/login"));
         if (!user) {
           setUserId(null);
           setUserEmail(null);
@@ -96,7 +92,7 @@ export default function AccountPage() {
     };
 
     loadAccount();
-  }, []);
+  }, [router]);
 
   const isProvider = !!providerProfile;
 
