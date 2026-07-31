@@ -1,32 +1,37 @@
-import { Container } from "@/components/container";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { PageShell } from "@/components/app/page-shell";
+import { PageHeader } from "@/components/app/page-header";
+import { PageSection } from "@/components/app/page-section";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function AboutPage() {
   return (
-    <main className="min-h-screen bg-white py-16">
-      <Container>
-        <Card>
-          <CardHeader>
-            <CardTitle>About PetCare Hub</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm text-gray-700">
+    <PageShell>
+      <PageHeader
+        title="About PetCare Hub"
+        description="A portfolio marketplace experience for pet owners and care providers."
+      />
+
+      <PageSection title="Pet care in one workspace">
+        <Card className="max-w-3xl">
+          <CardContent className="space-y-5 text-sm leading-7 text-muted-foreground sm:text-base">
             <p>
-              PetCare Hub is a marketplace that connects pet owners with trusted
-              walkers, sitters, and trainers.
+              PetCare Hub is a marketplace experience that connects pet owners
+              with walkers, sitters, trainers, and other care providers.
             </p>
             <p>
-              Our goal is to make pet care simple, safe, and transparent. Owners
-              can create detailed pet profiles, browse verified providers, and
-              book services with confidence.
+              Owners can create pet profiles, browse active provider profiles,
+              request services around provider availability, manage bookings,
+              and leave reviews. Providers can publish their services and rates,
+              manage weekly availability, and update booking status.
             </p>
             <p>
-              In the future, we&apos;ll add features like real-time booking,
-              reviews, messaging, and more — all built with performance and
-              reliability in mind.
+              The application uses Next.js 16, React 19, Supabase, and reusable
+              accessible interface components to demonstrate a cohesive,
+              responsive product workflow.
             </p>
           </CardContent>
         </Card>
-      </Container>
-    </main>
+      </PageSection>
+    </PageShell>
   );
 }
