@@ -5,12 +5,19 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseBrowser";
 import { requireUser } from "@/lib/requireUser";
 
-import { Container } from "@/components/container";
+import { PageShell } from "@/components/app/page-shell";
+import { PageHeader } from "@/components/app/page-header";
+import { PageSection } from "@/components/app/page-section";
+import { FeedbackAlert } from "@/components/app/feedback-alert";
+import { EmptyState } from "@/components/app/empty-state";
+import { LoadingState } from "@/components/app/loading-state";
+import { StatusBadge } from "@/components/app/status-badge";
 import {
   Card,
   CardHeader,
   CardTitle,
   CardContent,
+  CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -78,111 +85,126 @@ export default function ProvidersPage() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-white py-16">
-        <Container>
-          <p>Loading providers...</p>
-        </Container>
-      </main>
+      <PageShell>
+        <PageHeader
+          title="Find care providers"
+          description="Browse active local professionals for walking, sitting, training, and more."
+        />
+        <LoadingState label="Loading providers">
+          <p className="text-sm text-muted-foreground">Loading providers...</p>
+        </LoadingState>
+      </PageShell>
     );
   }
 
   if (!userId) {
     return (
-      <main className="min-h-screen bg-white py-16">
-        <Container>
-          <Card className="max-w-md">
-            <CardHeader>
-              <CardTitle>Browse Providers</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-gray-700">
-                You need to be logged in to browse and book providers.
-              </p>
+      <PageShell>
+        <PageHeader
+          title="Find care providers"
+          description="Browse active local professionals for walking, sitting, training, and more."
+        />
+        <PageSection aria-label="Sign in required">
+          <EmptyState
+            variant="panel"
+            title="Sign in to browse providers"
+            description="You need to be logged in to browse and book providers."
+            primaryAction={
               <Button onClick={() => router.push("/auth/login")}>
                 Go to Login
               </Button>
-            </CardContent>
-          </Card>
-        </Container>
-      </main>
+            }
+          />
+        </PageSection>
+      </PageShell>
     );
   }
 
   return (
-    <main className="min-h-screen bg-white py-16">
-      <Container>
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900">
-            Providers near you
-          </h1>
-          {/* Later we can add filters/search here */}
-        </div>
+    <PageShell>
+      <PageHeader
+        title="Find care providers"
+        description="Browse active local professionals for walking, sitting, training, and more."
+      />
 
-        {errorMsg && (
-          <p className="text-sm text-red-600 mb-4">{errorMsg}</p>
-        )}
+      {errorMsg && <FeedbackAlert variant="error">{errorMsg}</FeedbackAlert>}
 
+      <PageSection title="Providers near you">
         {providers.length === 0 ? (
-          <p className="text-sm text-gray-600">
-            No providers are available yet. Try again later.
-          </p>
+          <EmptyState
+            variant="panel"
+            title="No providers available"
+            description="No providers are available yet. Try again later."
+          />
         ) : (
-          <div className="grid gap-6 md:grid-cols-2">
+          <ul className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {providers.map((p) => (
-              <Card
-                key={p.id}
-                className="flex flex-col justify-between"
-              >
-                <CardHeader>
-                  <div className="flex items-center justify-between gap-2">
-                    <CardTitle className="text-lg">
-                      {p.display_name}
-                    </CardTitle>
-                    {p.hourly_rate != null && (
-                      <span className="text-sm text-gray-700">
-                        ${p.hourly_rate.toFixed(0)}/hr
-                      </span>
-                    )}
-                  </div>
-                  {formatLocation(p) && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      {formatLocation(p)}
-                    </p>
-                  )}
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {p.services && p.services.length > 0 && (
-                    <div className="flex flex-wrap gap-2 text-xs">
-                      {p.services.map((service) => (
-                        <span
-                          key={service}
-                          className="px-2 py-1 rounded-full bg-gray-100 text-gray-700"
-                        >
-                          {service}
-                        </span>
-                      ))}
+              <li key={p.id} className="min-w-0">
+                <Card className="h-full gap-0 py-0">
+                  <CardHeader className="gap-3 border-b px-5 py-5">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <CardTitle>
+                        <h3 className="text-lg leading-6">{p.display_name}</h3>
+                      </CardTitle>
+                      <StatusBadge tone="success">Active</StatusBadge>
                     </div>
-                  )}
 
-                  {p.bio && (
-                    <p className="text-sm text-gray-700 line-clamp-3">
-                      {p.bio}
-                    </p>
-                  )}
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      {formatLocation(p) ? (
+                        <p className="text-sm text-muted-foreground">
+                          {formatLocation(p)}
+                        </p>
+                      ) : (
+                        <span />
+                      )}
+                      {p.hourly_rate != null && (
+                        <span className="shrink-0 text-sm font-medium text-foreground">
+                          ${p.hourly_rate.toFixed(0)}/hr
+                        </span>
+                      )}
+                    </div>
+                  </CardHeader>
 
-                  <Button
-                    className="w-full mt-2 rounded-full"
-                    variant="outline"
-                    onClick={() => router.push(`/providers/${p.id}`)}
-                  >
-                    View details &amp; book
-                  </Button>
-                </CardContent>
-              </Card>
+                  <CardContent className="flex-1 space-y-4 px-5 py-5">
+                    {p.services && p.services.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          Services
+                        </p>
+                        <div className="flex flex-wrap gap-2 text-xs">
+                          {p.services.map((service) => (
+                            <span
+                              key={service}
+                              className="rounded-full bg-muted px-2 py-1 text-muted-foreground"
+                            >
+                              {service}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {p.bio && (
+                      <p className="line-clamp-3 text-sm leading-6 text-foreground">
+                        {p.bio}
+                      </p>
+                    )}
+                  </CardContent>
+
+                  <CardFooter className="border-t px-5 py-4">
+                    <Button
+                      className="w-full rounded-full"
+                      onClick={() => router.push(`/providers/${p.id}`)}
+                    >
+                      View details &amp; book
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
-      </Container>
-    </main>
+      </PageSection>
+    </PageShell>
   );
 }

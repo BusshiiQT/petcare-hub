@@ -5,8 +5,13 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseBrowser";
 import { requireUser } from "@/lib/requireUser";
 
-import { Container } from "@/components/container";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { PageShell } from "@/components/app/page-shell";
+import { PageHeader } from "@/components/app/page-header";
+import { PageSection } from "@/components/app/page-section";
+import { FeedbackAlert } from "@/components/app/feedback-alert";
+import { EmptyState } from "@/components/app/empty-state";
+import { LoadingState } from "@/components/app/loading-state";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -536,204 +541,264 @@ export default function ProviderDetailPage() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-white py-16">
-        <Container>
-          <p>Loading provider...</p>
-        </Container>
-      </main>
+      <PageShell>
+        <PageHeader
+          title="Provider details"
+          description="Review services, availability, and feedback before requesting care."
+        />
+        <LoadingState label="Loading provider details">
+          <p className="text-sm text-muted-foreground">Loading provider...</p>
+        </LoadingState>
+      </PageShell>
     );
   }
 
   if (!userId) {
     return (
-      <main className="min-h-screen bg-white py-16">
-        <Container>
-          <Card className="max-w-md">
-            <CardHeader>
-              <CardTitle>Provider Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-gray-700">
-                You need to be logged in to view provider details and request a booking.
-              </p>
-              <Button onClick={() => router.push("/auth/login")}>Go to Login</Button>
-            </CardContent>
-          </Card>
-        </Container>
-      </main>
+      <PageShell>
+        <PageHeader
+          title="Provider details"
+          description="Review services, availability, and feedback before requesting care."
+        />
+        <PageSection aria-label="Sign in required">
+          <EmptyState
+            variant="panel"
+            title="Sign in to view provider details"
+            description="You need to be logged in to view provider details and request a booking."
+            primaryAction={
+              <Button onClick={() => router.push("/auth/login")}>
+                Go to Login
+              </Button>
+            }
+          />
+        </PageSection>
+      </PageShell>
     );
   }
 
   if (!provider || loadError) {
     return (
-      <main className="min-h-screen bg-white py-16">
-        <Container>
-          <p className="text-sm text-red-600">{loadError ?? "Provider not found."}</p>
-        </Container>
-      </main>
+      <PageShell>
+        <PageHeader
+          title="Provider details"
+          description="Review services, availability, and feedback before requesting care."
+        />
+        <PageSection aria-label="Unable to load provider">
+          <FeedbackAlert variant="error">
+            {loadError ?? "Provider not found."}
+          </FeedbackAlert>
+        </PageSection>
+      </PageShell>
     );
   }
 
   return (
-    <main className="min-h-screen bg-white py-16">
-      <Container>
-        <div className="grid gap-8 md:grid-cols-[1.4fr,1fr]">
+    <PageShell>
+      <PageHeader
+        title={provider.display_name}
+        description={
+          formatLocation(provider) ||
+          "Review this provider’s services, availability, and feedback."
+        }
+      />
+
+      {(provider.hourly_rate != null || avgRating != null) && (
+        <PageSection title="Provider overview">
           <Card>
-            <CardHeader>
-              <CardTitle className="text-xl">{provider.display_name}</CardTitle>
-
-              {formatLocation(provider) && (
-                <p className="text-sm text-gray-500 mt-1">{formatLocation(provider)}</p>
-              )}
-
-              <div className="mt-2 flex items-center gap-3">
+            <CardContent>
+              <dl className="flex flex-wrap gap-x-8 gap-y-4">
                 {provider.hourly_rate != null && (
-                  <p className="text-sm text-gray-700">
-                    <span className="font-medium">${provider.hourly_rate.toFixed(0)}</span>{" "}
-                    per hour
-                  </p>
+                  <div>
+                    <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Hourly rate
+                    </dt>
+                    <dd className="mt-1 text-lg font-semibold text-foreground">
+                      ${provider.hourly_rate.toFixed(0)} per hour
+                    </dd>
+                  </div>
                 )}
                 {avgRating != null && (
-                  <p className="text-sm text-yellow-600">
-                    ★ {avgRating.toFixed(1)}{" "}
-                    <span className="text-xs text-gray-500">
-                      ({reviews.length} review{reviews.length === 1 ? "" : "s"})
-                    </span>
-                  </p>
+                  <div>
+                    <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Rating
+                    </dt>
+                    <dd className="mt-1 text-lg font-semibold text-foreground">
+                      ★ {avgRating.toFixed(1)}{" "}
+                      <span className="text-sm font-normal text-muted-foreground">
+                        ({reviews.length} review
+                        {reviews.length === 1 ? "" : "s"})
+                      </span>
+                    </dd>
+                  </div>
                 )}
-              </div>
-            </CardHeader>
+              </dl>
+            </CardContent>
+          </Card>
+        </PageSection>
+      )}
 
-            <CardContent className="space-y-5">
-              {provider.services && provider.services.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-gray-700 mb-1">Services offered</p>
-                  <div className="flex flex-wrap gap-2 text-xs">
+      <div className="grid min-w-0 items-start gap-8 lg:grid-cols-[minmax(0,1.25fr)_minmax(20rem,0.75fr)]">
+        <div className="min-w-0 space-y-8">
+          {provider.bio && (
+            <PageSection title="About">
+              <Card>
+                <CardContent>
+                  <p className="whitespace-pre-line text-sm leading-6 text-foreground">
+                    {provider.bio}
+                  </p>
+                </CardContent>
+              </Card>
+            </PageSection>
+          )}
+
+          {provider.services && provider.services.length > 0 && (
+            <PageSection title="Services">
+              <Card>
+                <CardContent>
+                  <ul className="flex flex-wrap gap-2 text-sm">
                     {provider.services.map((service) => (
-                      <span
+                      <li
                         key={service}
-                        className="px-2 py-1 rounded-full bg-gray-100 text-gray-700"
+                        className="rounded-full bg-muted px-3 py-1.5 text-muted-foreground"
                       >
                         {service}
-                      </span>
+                      </li>
                     ))}
-                  </div>
-                </div>
-              )}
+                  </ul>
+                </CardContent>
+              </Card>
+            </PageSection>
+          )}
 
-              {provider.bio && (
-                <div>
-                  <p className="text-xs font-semibold text-gray-700 mb-1">About</p>
-                  <p className="text-sm text-gray-700 whitespace-pre-line">{provider.bio}</p>
-                </div>
-              )}
-
-              <div className="border rounded-lg p-3">
-                <p className="text-xs font-semibold text-gray-700 mb-2">Availability this week</p>
-
+          <PageSection
+            title="Availability"
+            description="Availability windows currently offered each week."
+          >
+            <Card>
+              <CardContent>
                 {weeklySummary.size === 0 ? (
-                  <p className="text-sm text-gray-500">
-                    This provider hasn&apos;t set availability yet.
-                  </p>
+                  <EmptyState
+                    variant="compact"
+                    title="No availability set"
+                    description="This provider hasn’t set availability yet."
+                  />
                 ) : (
-                  <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="grid gap-3 sm:grid-cols-2">
                     {Array.from({ length: 7 }).map((_, day) => {
                       const slots = weeklySummary.get(day) ?? [];
                       return (
-                        <div key={day} className="flex items-start justify-between gap-3">
-                          <div className="text-xs text-gray-600 font-medium">
+                        <div
+                          key={day}
+                          className="flex min-w-0 items-start justify-between gap-3 rounded-md border p-3"
+                        >
+                          <span className="text-sm font-medium text-foreground">
                             {dayNames[day]}
-                          </div>
-                          <div className="text-xs text-gray-600 text-right">
-                            {slots.length === 0 ? (
-                              <span className="text-gray-400">—</span>
-                            ) : (
-                              <span>
-                                {slots
+                          </span>
+                          <span className="min-w-0 text-right text-sm text-muted-foreground">
+                            {slots.length === 0
+                              ? "—"
+                              : slots
                                   .map(
                                     (s) =>
-                                      `${hmFromTimeString(s.start_time)}–${hmFromTimeString(
-                                        s.end_time
-                                      )}`
+                                      `${hmFromTimeString(
+                                        s.start_time
+                                      )}–${hmFromTimeString(s.end_time)}`
                                   )
                                   .join(", ")}
-                              </span>
-                            )}
-                          </div>
+                          </span>
                         </div>
                       );
                     })}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </PageSection>
 
-                <p className="mt-2 text-[11px] text-gray-500">
-                  Pick a start time, then pick an end time.
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold text-gray-700 mb-2">Reviews</p>
-                {reviews.length === 0 ? (
-                  <p className="text-sm text-gray-500">
-                    No reviews yet. Be the first to leave one!
-                  </p>
-                ) : (
-                  <ul className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                    {reviews.map((r) => (
-                      <li key={r.id} className="border rounded-md px-3 py-2 text-sm">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-yellow-600 text-xs">
+          <PageSection title="Reviews">
+            {reviews.length === 0 ? (
+              <EmptyState
+                variant="panel"
+                title="No reviews yet"
+                description="Be the first to leave a review."
+              />
+            ) : (
+              <ul className="max-h-96 space-y-3 overflow-y-auto pr-1">
+                {reviews.map((r) => (
+                  <li key={r.id}>
+                    <Card className="gap-0 py-0">
+                      <CardContent className="space-y-2 p-4">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <span
+                            className="text-sm text-amber-700"
+                            aria-label={`${r.rating} out of 5 stars`}
+                          >
                             {"★".repeat(r.rating)} {"☆".repeat(5 - r.rating)}
                           </span>
-                          <span className="text-[11px] text-gray-500">
+                          <time
+                            className="text-xs text-muted-foreground"
+                            dateTime={r.created_at}
+                          >
                             {new Date(r.created_at).toLocaleDateString()}
-                          </span>
+                          </time>
                         </div>
                         {r.comment && (
-                          <p className="text-xs text-gray-700 mt-1">{r.comment}</p>
+                          <p className="text-sm leading-6 text-foreground">
+                            {r.comment}
+                          </p>
                         )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                      </CardContent>
+                    </Card>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </PageSection>
+        </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Request a booking</CardTitle>
-            </CardHeader>
-
-            <CardContent className="space-y-6">
+        <div className="min-w-0 space-y-8">
+          <PageSection title="Request a booking">
+            <Card>
+              <CardContent className="space-y-6">
               {pets.length === 0 ? (
-                <div className="space-y-3">
-                  <p className="text-sm text-gray-700">
-                    You need to add a pet before booking.
-                  </p>
-                  <Button className="w-full rounded-full" onClick={() => router.push("/pets")}>
-                    Go to My Pets
-                  </Button>
-                </div>
+                  <EmptyState
+                    variant="compact"
+                    title="Add a pet before booking"
+                    description="You need to add a pet before booking."
+                    primaryAction={
+                      <Button onClick={() => router.push("/pets")}>
+                        Go to My Pets
+                      </Button>
+                    }
+                  />
               ) : (
                 <>
-                  <div className="border rounded-lg p-3">
-                    <p className="text-sm font-medium text-gray-800">
-                      Pick a time range (next 7 days)
-                    </p>
+                    <fieldset className="rounded-lg border p-4">
+                      <legend className="px-1 text-sm font-medium text-foreground">
+                        Pick a time range (next 7 days)
+                      </legend>
+                      <p className="mb-3 text-xs text-muted-foreground">
+                        Pick a start time, then pick an end time.
+                      </p>
 
-                    <div className="mt-3 space-y-4 max-h-72 overflow-y-auto pr-1">
+                      <div className="max-h-80 space-y-4 overflow-y-auto pr-1">
                       {pickerDays.every((d) => d.times.length === 0) ? (
-                        <p className="text-xs text-gray-600">
-                          No available times found in the next 7 days (based on provider availability).
-                        </p>
+                          <EmptyState
+                            variant="compact"
+                            title="No available times"
+                            description="No available times found in the next 7 days (based on provider availability)."
+                          />
                       ) : (
                         pickerDays.map((d) => (
                           <div key={d.dateKey} className="space-y-2">
-                            <div className="text-xs font-semibold text-gray-700">{d.label}</div>
+                              <p className="text-xs font-semibold text-foreground">
+                                {d.label}
+                              </p>
 
                             {d.times.length === 0 ? (
-                              <div className="text-xs text-gray-400">No times</div>
+                                <p className="text-xs text-muted-foreground">
+                                  No times
+                                </p>
                             ) : (
                               <div className="flex flex-wrap gap-2">
                                 {d.times.map((t) => {
@@ -766,9 +831,12 @@ export default function ProviderDetailPage() {
                                       size="sm"
                                       disabled={disabled}
                                       variant={isStart || isEnd ? "default" : "outline"}
+                                      aria-pressed={Boolean(isStart || isEnd)}
                                       className={[
-                                        "h-7 px-2 text-xs rounded-full",
-                                        inRange ? "bg-gray-100 text-gray-900 border-gray-200" : "",
+                                          "min-h-9 rounded-full px-3 text-xs",
+                                          inRange
+                                            ? "border-border bg-muted text-foreground"
+                                            : "",
                                         disabled ? "opacity-50 cursor-not-allowed" : "",
                                       ].join(" ")}
                                       onClick={() => handleTimeBubbleClick(t)}
@@ -783,14 +851,21 @@ export default function ProviderDetailPage() {
                           </div>
                         ))
                       )}
-                    </div>
-                  </div>
+                      </div>
+                    </fieldset>
 
-                  <form className="space-y-3" onSubmit={handleCreateBooking}>
-                    <div className="space-y-1">
-                      <label className="block text-xs font-medium text-gray-700">Pet</label>
+                    <form className="space-y-4" onSubmit={handleCreateBooking}>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <label
+                            htmlFor="booking-pet"
+                            className="block text-xs font-medium text-foreground"
+                          >
+                            Pet
+                          </label>
                       <select
-                        className="w-full border rounded-md px-3 py-2 text-sm"
+                            id="booking-pet"
+                            className="h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
                         value={selectedPetId}
                         onChange={(e) => setSelectedPetId(e.target.value)}
                       >
@@ -800,14 +875,18 @@ export default function ProviderDetailPage() {
                           </option>
                         ))}
                       </select>
-                    </div>
+                        </div>
 
-                    <div className="space-y-1">
-                      <label className="block text-xs font-medium text-gray-700">
-                        Service type
-                      </label>
+                        <div className="space-y-1.5">
+                          <label
+                            htmlFor="booking-service"
+                            className="block text-xs font-medium text-foreground"
+                          >
+                            Service type
+                          </label>
                       <select
-                        className="w-full border rounded-md px-3 py-2 text-sm"
+                            id="booking-service"
+                            className="h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
                         value={serviceType}
                         onChange={(e) =>
                           setServiceType(
@@ -820,34 +899,53 @@ export default function ProviderDetailPage() {
                         <option value="training">Training</option>
                         <option value="other">Other</option>
                       </select>
+                        </div>
                     </div>
 
-                    <div className="space-y-1">
-                      <label className="block text-xs font-medium text-gray-700">Start time</label>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <label
+                            htmlFor="booking-start"
+                            className="block text-xs font-medium text-foreground"
+                          >
+                            Start time
+                          </label>
                       <Input
+                            id="booking-start"
                         type="datetime-local"
                         value={startTime}
                         onChange={(e) => setStartTime(e.target.value)}
                         required
                       />
-                    </div>
+                        </div>
 
-                    <div className="space-y-1">
-                      <label className="block text-xs font-medium text-gray-700">End time</label>
+                        <div className="space-y-1.5">
+                          <label
+                            htmlFor="booking-end"
+                            className="block text-xs font-medium text-foreground"
+                          >
+                            End time
+                          </label>
                       <Input
+                            id="booking-end"
                         type="datetime-local"
                         value={endTime}
                         onChange={(e) => setEndTime(e.target.value)}
                         required
                       />
+                        </div>
                     </div>
 
-                    <div className="space-y-1">
-                      <label className="block text-xs font-medium text-gray-700">
-                        Notes (optional)
-                      </label>
+                      <div className="space-y-1.5">
+                        <label
+                          htmlFor="booking-notes"
+                          className="block text-xs font-medium text-foreground"
+                        >
+                          Notes (optional)
+                        </label>
                       <textarea
-                        className="w-full border rounded-md px-3 py-2 text-sm"
+                          id="booking-notes"
+                          className="min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
                         rows={3}
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
@@ -855,8 +953,16 @@ export default function ProviderDetailPage() {
                       />
                     </div>
 
-                    {bookingError && <p className="text-sm text-red-600">{bookingError}</p>}
-                    {bookingSuccess && <p className="text-sm text-green-600">{bookingSuccess}</p>}
+                      {bookingError && (
+                        <FeedbackAlert variant="error">
+                          {bookingError}
+                        </FeedbackAlert>
+                      )}
+                      {bookingSuccess && (
+                        <FeedbackAlert variant="success">
+                          {bookingSuccess}
+                        </FeedbackAlert>
+                      )}
 
                     <Button
                       type="submit"
@@ -873,15 +979,24 @@ export default function ProviderDetailPage() {
                   </form>
                 </>
               )}
+              </CardContent>
+            </Card>
+          </PageSection>
 
-              <div className="border-t pt-4">
-                <p className="text-sm font-medium text-gray-800 mb-2">Leave a review</p>
-
-                <form className="space-y-3" onSubmit={handleSubmitReview}>
-                  <div className="space-y-1">
-                    <label className="block text-xs font-medium text-gray-700">Rating</label>
+          <PageSection title="Leave a review">
+            <Card>
+              <CardContent>
+                <form className="space-y-4" onSubmit={handleSubmitReview}>
+                  <div className="space-y-1.5">
+                    <label
+                      htmlFor="review-rating"
+                      className="block text-xs font-medium text-foreground"
+                    >
+                      Rating
+                    </label>
                     <select
-                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      id="review-rating"
+                      className="h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
                       value={reviewRating}
                       onChange={(e) => setReviewRating(Number(e.target.value))}
                     >
@@ -893,12 +1008,16 @@ export default function ProviderDetailPage() {
                     </select>
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="block text-xs font-medium text-gray-700">
+                  <div className="space-y-1.5">
+                    <label
+                      htmlFor="review-comment"
+                      className="block text-xs font-medium text-foreground"
+                    >
                       Comment (optional)
                     </label>
                     <textarea
-                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      id="review-comment"
+                      className="min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
                       rows={3}
                       value={reviewComment}
                       onChange={(e) => setReviewComment(e.target.value)}
@@ -906,18 +1025,24 @@ export default function ProviderDetailPage() {
                     />
                   </div>
 
-                  {reviewError && <p className="text-sm text-red-600">{reviewError}</p>}
-                  {reviewSuccess && <p className="text-sm text-green-600">{reviewSuccess}</p>}
+                  {reviewError && (
+                    <FeedbackAlert variant="error">{reviewError}</FeedbackAlert>
+                  )}
+                  {reviewSuccess && (
+                    <FeedbackAlert variant="success">
+                      {reviewSuccess}
+                    </FeedbackAlert>
+                  )}
 
                   <Button type="submit" className="w-full rounded-full" disabled={isSubmittingReview}>
                     {isSubmittingReview ? "Submitting..." : "Submit review"}
                   </Button>
                 </form>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </PageSection>
         </div>
-      </Container>
-    </main>
+      </div>
+    </PageShell>
   );
 }
