@@ -194,39 +194,38 @@ export default function OwnerDashboardPage() {
         title="Overview"
         description="A snapshot of your PetCare Hub activity."
       >
-        <div className="grid gap-6 lg:grid-cols-[1.5fr_2fr]">
-          <Card>
-            <CardContent className="space-y-3">
-              <p className="text-sm text-gray-700">
-                Manage your pets, bookings, and explore providers from one
-                place.
-              </p>
+        <Card>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-gray-700">
+              Manage your pets, bookings, and explore providers from one place.
+            </p>
 
-              {totalPets > 0 && (
-                <div className="mt-3">
-                  <p className="text-xs font-semibold text-gray-700 mb-1">
-                    Your pets
-                  </p>
-                  <div className="flex flex-wrap gap-2 text-xs">
-                    {pets.map((pet) => (
-                      <span
-                        key={pet.id}
-                        className="px-2 py-1 rounded-full bg-gray-100 text-gray-700"
-                      >
-                        {pet.name} ({pet.type})
-                      </span>
-                    ))}
-                  </div>
+            {totalPets > 0 && (
+              <div className="mt-3">
+                <p className="mb-1 text-xs font-semibold text-gray-700">
+                  Your pets
+                </p>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  {pets.map((pet) => (
+                    <span
+                      key={pet.id}
+                      className="rounded-full bg-gray-100 px-2 py-1 text-gray-700"
+                    >
+                      {pet.name} ({pet.type})
+                    </span>
+                  ))}
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </PageSection>
 
-          <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-            <StatCard label="Pets" value={totalPets} />
-            <StatCard label="Bookings" value={totalBookings} />
-            <StatCard label="Pending" value={pendingBookings} />
-          </div>
+      <PageSection aria-label="Dashboard statistics">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <StatCard label="Pets" value={totalPets} />
+          <StatCard label="Bookings" value={totalBookings} />
+          <StatCard label="Pending" value={pendingBookings} />
         </div>
       </PageSection>
 

@@ -20,10 +20,10 @@ function StatCard({
 }: StatCardProps) {
   return (
     <Card className={cn("gap-0 py-0", className)} {...props}>
-      <CardContent className="flex min-h-28 items-start justify-between gap-4 p-5">
+      <CardContent className="flex items-start justify-between gap-3 p-4">
         <dl className="min-w-0">
           <dt className="text-sm font-medium text-muted-foreground">{label}</dt>
-          <dd className="mt-2 text-3xl font-semibold tracking-tight text-foreground">
+          <dd className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
             {value}
           </dd>
           {description ? (
