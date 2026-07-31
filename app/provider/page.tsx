@@ -6,8 +6,18 @@ import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabaseBrowser";
 import { requireUser } from "@/lib/requireUser";
 
-import { Container } from "@/components/container";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { PageShell } from "@/components/app/page-shell";
+import { PageHeader } from "@/components/app/page-header";
+import { PageSection } from "@/components/app/page-section";
+import { StatCard } from "@/components/app/stat-card";
+import { FeedbackAlert } from "@/components/app/feedback-alert";
+import { EmptyState } from "@/components/app/empty-state";
+import { LoadingState } from "@/components/app/loading-state";
+import {
+  StatusBadge,
+  type StatusBadgeTone,
+} from "@/components/app/status-badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DashboardSkeleton } from "@/components/dashboard-skeleton";
 
@@ -141,6 +151,21 @@ export default function ProviderDashboardPage() {
     return d.toLocaleString();
   };
 
+  const getStatusTone = (status: BookingStatus): StatusBadgeTone => {
+    switch (status) {
+      case "pending":
+        return "warning";
+      case "confirmed":
+        return "info";
+      case "completed":
+        return "success";
+      case "cancelled":
+        return "destructive";
+      default:
+        return "neutral";
+    }
+  };
+
   const pendingCount = bookings.filter((b) => b.status === "pending").length;
   const upcoming = bookings.filter(
     (b) => b.status === "pending" || b.status === "confirmed"
@@ -148,175 +173,179 @@ export default function ProviderDashboardPage() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-white py-16">
-        <Container>
+      <PageShell>
+        <LoadingState label="Loading provider dashboard">
           <DashboardSkeleton />
-        </Container>
-      </main>
+        </LoadingState>
+      </PageShell>
     );
   }
 
   if (!userId) {
     return (
-      <main className="min-h-screen bg-white py-16">
-        <Container>
-          <Card className="max-w-md">
-            <CardHeader>
-              <CardTitle>Provider Dashboard</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-gray-700">
-                You need to be logged in as a provider to view your dashboard.
-              </p>
+      <PageShell>
+        <PageHeader
+          title="Provider dashboard"
+          description="Manage your profile, bookings, and availability."
+        />
+        <PageSection aria-label="Sign in required">
+          <EmptyState
+            variant="panel"
+            title="Sign in to view your dashboard"
+            description="You need to be logged in as a provider to view your dashboard."
+            primaryAction={
               <Button onClick={() => router.push("/auth/login")}>
                 Go to Login
               </Button>
-            </CardContent>
-          </Card>
-        </Container>
-      </main>
+            }
+          />
+        </PageSection>
+      </PageShell>
     );
   }
 
   if (!provider) {
     return (
-      <main className="min-h-screen bg-white py-16">
-        <Container>
-          <Card className="max-w-md">
-            <CardHeader>
-              <CardTitle>Provider Dashboard</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-gray-700">
-                You don&apos;t have a provider profile yet.
-              </p>
+      <PageShell>
+        <PageHeader
+          title="Provider dashboard"
+          description="Manage your profile, bookings, and availability."
+        />
+        <PageSection aria-label="Provider profile required">
+          <EmptyState
+            variant="panel"
+            title="Create your provider profile"
+            description="Set up your profile before managing provider bookings and availability."
+            primaryAction={
               <Button onClick={() => router.push("/provider/profile")}>
                 Create provider profile
               </Button>
-            </CardContent>
-          </Card>
-        </Container>
-      </main>
+            }
+          />
+        </PageSection>
+      </PageShell>
     );
   }
 
   return (
-    <main className="min-h-screen bg-white py-16">
-      <Container>
-        {errorMsg && <p className="text-sm text-red-600 mb-4">{errorMsg}</p>}
+    <PageShell>
+      <PageHeader
+        title="Provider dashboard"
+        description="Manage your profile, bookings, and availability."
+        actions={
+          <>
+            <Button
+              className="h-auto min-h-9 whitespace-normal rounded-full py-2 text-center"
+              onClick={() => router.push("/provider/profile")}
+            >
+              Edit profile
+            </Button>
+            <Button
+              variant="outline"
+              className="h-auto min-h-9 whitespace-normal rounded-full py-2 text-center"
+              onClick={() => router.push("/provider/bookings")}
+            >
+              View all bookings
+            </Button>
+            <Button
+              variant="outline"
+              className="h-auto min-h-9 whitespace-normal rounded-full py-2 text-center"
+              onClick={() => router.push("/provider/availability")}
+            >
+              Availability
+            </Button>
+          </>
+        }
+      />
 
-        <div className="grid gap-6 md:grid-cols-[2fr,1.5fr] mb-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Welcome, {provider.display_name}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {formatLocation(provider) && (
-                <p className="text-sm text-gray-600">
-                  Location: {formatLocation(provider)}
-                </p>
-              )}
+      {errorMsg && <FeedbackAlert variant="error">{errorMsg}</FeedbackAlert>}
 
-              {provider.services && provider.services.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-gray-700 mb-1">
-                    Services
-                  </p>
-                  <div className="flex flex-wrap gap-2 text-xs">
-                    {provider.services.map((service) => (
-                      <span
-                        key={service}
-                        className="px-2 py-1 rounded-full bg-gray-100 text-gray-700"
-                      >
-                        {service}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {provider.hourly_rate != null && (
-                <p className="text-sm text-gray-700">
-                  Base rate:{" "}
-                  <span className="font-medium">
-                    ${provider.hourly_rate.toFixed(0)}
-                  </span>{" "}
-                  per hour
-                </p>
-              )}
-
-              <div className="flex flex-wrap gap-3 mt-3">
-                <Button
-                  variant="outline"
-                  className="rounded-full"
-                  onClick={() => router.push("/provider/profile")}
-                >
-                  Edit profile
-                </Button>
-                <Button
-                  variant="outline"
-                  className="rounded-full"
-                  onClick={() => router.push("/provider/bookings")}
-                >
-                  View all bookings
-                </Button>
-                <Button
-                  variant="outline"
-                  className="rounded-full"
-                  onClick={() => router.push("/provider/availability")}
-                >
-                  Availability
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Stats</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div className="border rounded-lg px-2 py-3">
-                  <p className="text-xs text-gray-500 mb-1">Total bookings</p>
-                  <p className="text-xl font-semibold text-gray-900">
-                    {bookings.length}
-                  </p>
-                </div>
-                <div className="border rounded-lg px-2 py-3">
-                  <p className="text-xs text-gray-500 mb-1">Pending</p>
-                  <p className="text-xl font-semibold text-gray-900">
-                    {pendingCount}
-                  </p>
-                </div>
-                <div className="border rounded-lg px-2 py-3">
-                  <p className="text-xs text-gray-500 mb-1">Rating</p>
-                  {avgRating != null ? (
-                    <p className="text-xl font-semibold text-yellow-600">
-                      {avgRating.toFixed(1)}
-                      <span className="text-xs text-gray-500 ml-1">
-                        ({reviewCount})
-                      </span>
-                    </p>
-                  ) : (
-                    <p className="text-sm text-gray-400">No reviews</p>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
+      <PageSection title="Profile overview">
         <Card>
-          <CardHeader>
-            <CardTitle>Upcoming bookings</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {upcoming.length === 0 ? (
-              <p className="text-sm text-gray-600">
-                You don&apos;t have any upcoming bookings.
+          <CardContent className="space-y-4">
+            <h3 className="text-lg font-semibold tracking-tight text-foreground">
+              Welcome, {provider.display_name}
+            </h3>
+
+            {formatLocation(provider) && (
+              <p className="text-sm text-muted-foreground">
+                Location: {formatLocation(provider)}
               </p>
-            ) : (
+            )}
+
+            {provider.services && provider.services.length > 0 && (
+              <div>
+                <p className="mb-1 text-xs font-semibold text-foreground">
+                  Services
+                </p>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  {provider.services.map((service) => (
+                    <span
+                      key={service}
+                      className="rounded-full bg-muted px-2 py-1 text-muted-foreground"
+                    >
+                      {service}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {provider.hourly_rate != null && (
+              <p className="text-sm text-foreground">
+                Base rate:{" "}
+                <span className="font-medium">
+                  ${provider.hourly_rate.toFixed(0)}
+                </span>{" "}
+                per hour
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </PageSection>
+
+      <PageSection title="At a glance">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <StatCard label="Total bookings" value={bookings.length} />
+          <StatCard label="Pending" value={pendingCount} />
+          <StatCard
+            label="Rating"
+            value={
+              avgRating != null ? (
+                <>
+                  {avgRating.toFixed(1)}
+                  <span className="ml-1 text-xs font-normal text-muted-foreground">
+                    ({reviewCount})
+                  </span>
+                </>
+              ) : (
+                <span className="text-base font-medium text-muted-foreground">
+                  No reviews
+                </span>
+              )
+            }
+          />
+        </div>
+      </PageSection>
+
+      <PageSection title="Upcoming bookings">
+        {upcoming.length === 0 ? (
+          <EmptyState
+            variant="panel"
+            title="No upcoming bookings"
+            description="New pending and confirmed bookings will appear here."
+            primaryAction={
+              <Button
+                variant="outline"
+                onClick={() => router.push("/provider/bookings")}
+              >
+                View all bookings
+              </Button>
+            }
+          />
+        ) : (
+          <Card>
+            <CardContent>
               <ul className="space-y-3">
                 {upcoming.map((b, index) => {
                   const petInfo = b.pet?.[0] ?? null;
@@ -328,13 +357,13 @@ export default function ProviderDashboardPage() {
                       transition={{ delay: index * 0.03 }}
                       className="border rounded-md px-3 py-2 text-sm flex flex-col gap-1"
                     >
-                      <div className="flex items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="font-medium">
                           {petInfo ? petInfo.name : "Pet"}
                         </div>
-                        <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700">
+                        <StatusBadge tone={getStatusTone(b.status)}>
                           {b.status}
-                        </span>
+                        </StatusBadge>
                       </div>
                       <div className="text-xs text-gray-600">
                         {b.service_type} • {formatDateTime(b.start_time)} –{" "}
@@ -344,10 +373,10 @@ export default function ProviderDashboardPage() {
                   );
                 })}
               </ul>
-            )}
-          </CardContent>
-        </Card>
-      </Container>
-    </main>
+            </CardContent>
+          </Card>
+        )}
+      </PageSection>
+    </PageShell>
   );
 }
