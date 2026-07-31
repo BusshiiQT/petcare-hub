@@ -3,8 +3,11 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabaseBrowser";
 
-import { Container } from "@/components/container";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { PageShell } from "@/components/app/page-shell";
+import { PageHeader } from "@/components/app/page-header";
+import { PageSection } from "@/components/app/page-section";
+import { FeedbackAlert } from "@/components/app/feedback-alert";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -39,20 +42,28 @@ export default function SignUpPage() {
   };
 
   return (
-    <main className="min-h-screen bg-white py-16">
-      <Container>
-        <div className="flex justify-center">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle>Create your PetCare Hub account</CardTitle>
-            </CardHeader>
+    <PageShell>
+      <div className="mx-auto max-w-md space-y-8">
+        <PageHeader
+          title="Create your PetCare Hub account"
+          description="Join PetCare Hub to manage pet care and provider services."
+        />
+        <PageSection aria-label="Signup form">
+          <Card>
             <CardContent>
               <form className="space-y-4" onSubmit={handleSignUp}>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Email
+                  <label
+                    htmlFor="signup-email"
+                    className="block text-sm font-medium text-foreground"
+                  >
+                    Email{" "}
+                    <span className="font-normal text-muted-foreground">
+                      (required)
+                    </span>
                   </label>
                   <Input
+                    id="signup-email"
                     type="email"
                     placeholder="you@example.com"
                     value={email}
@@ -62,10 +73,17 @@ export default function SignUpPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Password
+                  <label
+                    htmlFor="signup-password"
+                    className="block text-sm font-medium text-foreground"
+                  >
+                    Password{" "}
+                    <span className="font-normal text-muted-foreground">
+                      (required)
+                    </span>
                   </label>
                   <Input
+                    id="signup-password"
                     type="password"
                     placeholder="••••••••"
                     value={password}
@@ -75,11 +93,11 @@ export default function SignUpPage() {
                 </div>
 
                 {errorMsg && (
-                  <p className="text-sm text-red-600 mb-1">{errorMsg}</p>
+                  <FeedbackAlert variant="error">{errorMsg}</FeedbackAlert>
                 )}
 
                 {successMsg && (
-                  <p className="text-sm text-green-600 mb-1">{successMsg}</p>
+                  <FeedbackAlert variant="success">{successMsg}</FeedbackAlert>
                 )}
 
                 <Button
@@ -92,8 +110,8 @@ export default function SignUpPage() {
               </form>
             </CardContent>
           </Card>
-        </div>
-      </Container>
-    </main>
+        </PageSection>
+      </div>
+    </PageShell>
   );
 }

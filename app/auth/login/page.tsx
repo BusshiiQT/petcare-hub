@@ -4,8 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseBrowser";
 
-import { Container } from "@/components/container";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { PageShell } from "@/components/app/page-shell";
+import { PageHeader } from "@/components/app/page-header";
+import { PageSection } from "@/components/app/page-section";
+import { FeedbackAlert } from "@/components/app/feedback-alert";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -37,20 +40,28 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen bg-white py-16">
-      <Container>
-        <div className="flex justify-center">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle>Log in to PetCare Hub</CardTitle>
-            </CardHeader>
+    <PageShell>
+      <div className="mx-auto max-w-md space-y-8">
+        <PageHeader
+          title="Log in to PetCare Hub"
+          description="Access your pets, bookings, and provider workspace."
+        />
+        <PageSection aria-label="Login form">
+          <Card>
             <CardContent>
               <form className="space-y-4" onSubmit={handleLogin}>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Email
+                  <label
+                    htmlFor="login-email"
+                    className="block text-sm font-medium text-foreground"
+                  >
+                    Email{" "}
+                    <span className="font-normal text-muted-foreground">
+                      (required)
+                    </span>
                   </label>
                   <Input
+                    id="login-email"
                     type="email"
                     placeholder="you@example.com"
                     value={email}
@@ -60,10 +71,17 @@ export default function LoginPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Password
+                  <label
+                    htmlFor="login-password"
+                    className="block text-sm font-medium text-foreground"
+                  >
+                    Password{" "}
+                    <span className="font-normal text-muted-foreground">
+                      (required)
+                    </span>
                   </label>
                   <Input
+                    id="login-password"
                     type="password"
                     placeholder="••••••••"
                     value={password}
@@ -73,7 +91,7 @@ export default function LoginPage() {
                 </div>
 
                 {errorMsg && (
-                  <p className="text-sm text-red-600 mb-1">{errorMsg}</p>
+                  <FeedbackAlert variant="error">{errorMsg}</FeedbackAlert>
                 )}
 
                 <Button
@@ -86,8 +104,8 @@ export default function LoginPage() {
               </form>
             </CardContent>
           </Card>
-        </div>
-      </Container>
-    </main>
+        </PageSection>
+      </div>
+    </PageShell>
   );
 }

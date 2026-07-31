@@ -5,13 +5,14 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseBrowser";
 import { requireUser } from "@/lib/requireUser";
 
-import { Container } from "@/components/container";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "@/components/ui/card";
+import { PageShell } from "@/components/app/page-shell";
+import { PageHeader } from "@/components/app/page-header";
+import { PageSection } from "@/components/app/page-section";
+import { FeedbackAlert } from "@/components/app/feedback-alert";
+import { EmptyState } from "@/components/app/empty-state";
+import { LoadingState } from "@/components/app/loading-state";
+import { StatusBadge } from "@/components/app/status-badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -201,161 +202,86 @@ export default function AccountPage() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-white py-16">
-        <Container>
-          <p>Loading your account...</p>
-        </Container>
-      </main>
+      <PageShell>
+        <PageHeader
+          title="Account settings"
+          description="Manage your profile, workspace access, email, and password."
+        />
+        <LoadingState label="Loading your account">
+          <p className="text-sm text-muted-foreground">
+            Loading your account...
+          </p>
+        </LoadingState>
+      </PageShell>
     );
   }
 
   if (!userId || !userEmail) {
     return (
-      <main className="min-h-screen bg-white py-16">
-        <Container>
-          <Card className="max-w-md">
-            <CardHeader>
-              <CardTitle>Account</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-gray-700">
-                You need to be logged in to view your account.
-              </p>
+      <PageShell>
+        <PageHeader
+          title="Account settings"
+          description="Manage your profile, workspace access, email, and password."
+        />
+        <PageSection aria-label="Sign in required">
+          <EmptyState
+            variant="panel"
+            title="Sign in to view your account"
+            description="You need to be logged in to view your account."
+            primaryAction={
               <Button onClick={() => router.push("/auth/login")}>
                 Go to Login
               </Button>
-            </CardContent>
-          </Card>
-        </Container>
-      </main>
+            }
+          />
+        </PageSection>
+      </PageShell>
     );
   }
 
   return (
-    <main className="min-h-screen bg-white py-16">
-      <Container>
-        {errorMsg && (
-          <p className="text-sm text-red-600 mb-4">{errorMsg}</p>
-        )}
+    <PageShell>
+      <PageHeader
+        title="Account settings"
+        description="Manage your profile, workspace access, email, and password."
+        actions={
+          <Button
+            variant="outline"
+            className="rounded-full"
+            onClick={handleLogout}
+          >
+            Log out
+          </Button>
+        }
+      />
 
-        <div className="grid gap-6 md:grid-cols-[2fr,1.5fr]">
-          {/* Left column: account details + profile settings */}
-          <div className="space-y-6">
-            {/* Account details */}
+      {errorMsg && <FeedbackAlert variant="error">{errorMsg}</FeedbackAlert>}
+
+      <div className="grid min-w-0 items-start gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(20rem,0.9fr)]">
+        <div className="min-w-0 space-y-8">
+          <PageSection title="Account overview">
             <Card>
-              <CardHeader>
-                <CardTitle>Account details</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-5">
                 <div>
-                  <p className="text-xs font-semibold text-gray-700 mb-1">
+                  <p className="mb-1 text-xs font-semibold text-muted-foreground">
                     Email
                   </p>
-                  <p className="text-sm text-gray-900">{userEmail}</p>
+                  <p className="break-words text-sm text-foreground">
+                    {userEmail}
+                  </p>
                 </div>
 
                 <div>
-                  <p className="text-xs font-semibold text-gray-700 mb-1">
+                  <p className="mb-1 text-xs font-semibold text-muted-foreground">
                     User ID
                   </p>
-                  <p className="text-xs text-gray-500 break-all">{userId}</p>
-                </div>
-
-                <div>
-                  <p className="text-xs font-semibold text-gray-700 mb-1">
-                    Provider status
+                  <p className="break-all text-xs text-muted-foreground">
+                    {userId}
                   </p>
-                  {isProvider ? (
-                    <p className="text-sm text-green-700">
-                      You have a provider profile
-                      {providerProfile?.display_name
-                        ? ` as "${providerProfile.display_name}".`
-                        : "."}
-                    </p>
-                  ) : (
-                    <p className="text-sm text-gray-700">
-                      You don&apos;t have a provider profile yet.
-                    </p>
-                  )}
                 </div>
 
-                <div className="pt-2 border-t mt-4">
-                  <Button
-                    variant="outline"
-                    className="rounded-full"
-                    onClick={handleLogout}
-                  >
-                    Log out
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Profile settings (user metadata) */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Profile settings</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form className="space-y-3" onSubmit={handleSaveProfile}>
-                  <div className="space-y-1">
-                    <label className="block text-xs font-medium text-gray-700">
-                      Full name
-                    </label>
-                    <Input
-                      type="text"
-                      value={profileFullName}
-                      onChange={(e) => setProfileFullName(e.target.value)}
-                      placeholder="Your name"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="block text-xs font-medium text-gray-700">
-                      Phone
-                    </label>
-                    <Input
-                      type="tel"
-                      value={profilePhone}
-                      onChange={(e) => setProfilePhone(e.target.value)}
-                      placeholder="Optional phone number"
-                    />
-                  </div>
-
-                  {profileMessage && (
-                    <p
-                      className={`text-sm ${
-                        profileMessage.includes("Failed")
-                          ? "text-red-600"
-                          : "text-green-600"
-                      }`}
-                    >
-                      {profileMessage}
-                    </p>
-                  )}
-
-                  <Button
-                    type="submit"
-                    className="rounded-full"
-                    disabled={isSavingProfile}
-                  >
-                    {isSavingProfile ? "Saving..." : "Save changes"}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Right column: quick actions + security */}
-          <div className="space-y-6">
-            {/* Quick actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold text-gray-700">
+                <div className="border-t pt-4">
+                  <p className="mb-3 text-xs font-semibold text-muted-foreground">
                     Owner tools
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -385,11 +311,91 @@ export default function AccountPage() {
                     </Button>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </PageSection>
 
-                <div className="space-y-2 pt-2 border-t">
-                  <p className="text-xs font-semibold text-gray-700">
-                    Provider tools
-                  </p>
+          <PageSection title="Profile information">
+            <Card>
+              <CardContent>
+                <form className="space-y-4" onSubmit={handleSaveProfile}>
+                  <div className="space-y-1.5">
+                    <label
+                      htmlFor="account-full-name"
+                      className="block text-xs font-medium text-foreground"
+                    >
+                      Full name
+                    </label>
+                    <Input
+                      id="account-full-name"
+                      type="text"
+                      value={profileFullName}
+                      onChange={(e) => setProfileFullName(e.target.value)}
+                      placeholder="Your name"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label
+                      htmlFor="account-phone"
+                      className="block text-xs font-medium text-foreground"
+                    >
+                      Phone
+                    </label>
+                    <Input
+                      id="account-phone"
+                      type="tel"
+                      value={profilePhone}
+                      onChange={(e) => setProfilePhone(e.target.value)}
+                      placeholder="Optional phone number"
+                    />
+                  </div>
+
+                  {profileMessage && (
+                    <FeedbackAlert
+                      variant={
+                        profileMessage.includes("Failed") ? "error" : "success"
+                      }
+                    >
+                      {profileMessage}
+                    </FeedbackAlert>
+                  )}
+
+                  <Button
+                    type="submit"
+                    className="rounded-full"
+                    disabled={isSavingProfile}
+                  >
+                    {isSavingProfile ? "Saving..." : "Save changes"}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </PageSection>
+        </div>
+
+        <div className="min-w-0 space-y-8">
+          <PageSection title="Provider status">
+            <Card>
+              <CardContent className="space-y-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 space-y-1">
+                    <p className="text-sm text-foreground">
+                      {isProvider
+                        ? `You have a provider profile${
+                            providerProfile?.display_name
+                              ? ` as "${providerProfile.display_name}".`
+                              : "."
+                          }`
+                        : "You don’t have a provider profile yet."}
+                    </p>
+                  </div>
+                  <StatusBadge tone={isProvider ? "success" : "neutral"}>
+                    {isProvider ? "Provider profile" : "No provider profile"}
+                  </StatusBadge>
+                </div>
+
+                <div className="border-t pt-4">
                   {isProvider ? (
                     <div className="flex flex-wrap gap-2">
                       <Button
@@ -411,7 +417,7 @@ export default function AccountPage() {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <p className="text-xs text-gray-600">
+                      <p className="text-xs text-muted-foreground">
                         Want to offer walking, sitting, or training services?
                         Become a provider.
                       </p>
@@ -427,34 +433,41 @@ export default function AccountPage() {
                 </div>
               </CardContent>
             </Card>
+          </PageSection>
 
-            {/* Security: email + password */}
+          <PageSection title="Email">
             <Card>
-              <CardHeader>
-                <CardTitle>Security</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Change email */}
-                <form className="space-y-2" onSubmit={handleUpdateEmail}>
-                  <p className="text-xs font-semibold text-gray-700">
-                    Change email
-                  </p>
-                  <Input
-                    type="email"
-                    value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
-                    placeholder="New email address"
-                  />
+              <CardContent>
+                <form className="space-y-4" onSubmit={handleUpdateEmail}>
+                  <div className="space-y-1.5">
+                    <label
+                      htmlFor="account-new-email"
+                      className="block text-xs font-medium text-foreground"
+                    >
+                      New email address
+                    </label>
+                    <Input
+                      id="account-new-email"
+                      type="email"
+                      value={newEmail}
+                      onChange={(e) => setNewEmail(e.target.value)}
+                      placeholder="New email address"
+                    />
+                  </div>
                   {emailMessage && (
-                    <p
-                      className={`text-xs ${
+                    <FeedbackAlert
+                      variant={
                         emailMessage.includes("Failed")
-                          ? "text-red-600"
-                          : "text-gray-700"
-                      }`}
+                          ? "error"
+                          : emailMessage.includes("successfully")
+                          ? "success"
+                          : emailMessage.includes("Please")
+                          ? "warning"
+                          : "info"
+                      }
                     >
                       {emailMessage}
-                    </p>
+                    </FeedbackAlert>
                   )}
                   <Button
                     type="submit"
@@ -466,37 +479,56 @@ export default function AccountPage() {
                     {isUpdatingEmail ? "Updating..." : "Update email"}
                   </Button>
                 </form>
+              </CardContent>
+            </Card>
+          </PageSection>
 
-                {/* Change password */}
-                <form
-                  className="space-y-2 pt-3 border-t"
-                  onSubmit={handleUpdatePassword}
-                >
-                  <p className="text-xs font-semibold text-gray-700">
-                    Change password
-                  </p>
-                  <Input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="New password"
-                  />
-                  <Input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm new password"
-                  />
+          <PageSection title="Password">
+            <Card>
+              <CardContent>
+                <form className="space-y-4" onSubmit={handleUpdatePassword}>
+                  <div className="space-y-1.5">
+                    <label
+                      htmlFor="account-new-password"
+                      className="block text-xs font-medium text-foreground"
+                    >
+                      New password
+                    </label>
+                    <Input
+                      id="account-new-password"
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="New password"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label
+                      htmlFor="account-confirm-password"
+                      className="block text-xs font-medium text-foreground"
+                    >
+                      Confirm new password
+                    </label>
+                    <Input
+                      id="account-confirm-password"
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Confirm new password"
+                    />
+                  </div>
                   {passwordMessage && (
-                    <p
-                      className={`text-xs ${
+                    <FeedbackAlert
+                      variant={
                         passwordMessage.includes("Failed")
-                          ? "text-red-600"
-                          : "text-gray-700"
-                      }`}
+                          ? "error"
+                          : passwordMessage.includes("successfully")
+                          ? "success"
+                          : "warning"
+                      }
                     >
                       {passwordMessage}
-                    </p>
+                    </FeedbackAlert>
                   )}
                   <Button
                     type="submit"
@@ -510,9 +542,9 @@ export default function AccountPage() {
                 </form>
               </CardContent>
             </Card>
-          </div>
+          </PageSection>
         </div>
-      </Container>
-    </main>
+      </div>
+    </PageShell>
   );
 }
