@@ -6,7 +6,16 @@ import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabaseBrowser";
 import { requireUser } from "@/lib/requireUser";
 
-import { Container } from "@/components/container";
+import { PageShell } from "@/components/app/page-shell";
+import { PageHeader } from "@/components/app/page-header";
+import { PageSection } from "@/components/app/page-section";
+import { FeedbackAlert } from "@/components/app/feedback-alert";
+import { EmptyState } from "@/components/app/empty-state";
+import { LoadingState } from "@/components/app/loading-state";
+import {
+  StatusBadge,
+  type StatusBadgeTone,
+} from "@/components/app/status-badge";
 import {
   Card,
   CardHeader,
@@ -120,6 +129,9 @@ export default function ProviderAvailabilityPage() {
 
   const formatTime = (t: string) => t.slice(0, 5); // "HH:MM:SS" -> "HH:MM"
 
+  const getAvailabilityTone = (isActive: boolean): StatusBadgeTone =>
+    isActive ? "success" : "neutral";
+
   const handleAddSlot = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!provider) return;
@@ -229,98 +241,97 @@ export default function ProviderAvailabilityPage() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-white py-16">
-        <Container>
+      <PageShell>
+        <PageHeader
+          title="Provider availability"
+          description="Set the weekly times when pet owners can request your services."
+        />
+        <LoadingState label="Loading your availability schedule">
           <Card className="max-w-md">
-            <CardHeader>
-              <CardTitle>Availability</CardTitle>
-            </CardHeader>
             <CardContent>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 Loading your availability schedule...
               </p>
             </CardContent>
           </Card>
-        </Container>
-      </main>
+        </LoadingState>
+      </PageShell>
     );
   }
 
   if (!userId) {
     return (
-      <main className="min-h-screen bg-white py-16">
-        <Container>
-          <Card className="max-w-md">
-            <CardHeader>
-              <CardTitle>Provider Availability</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-gray-700">
-                You need to be logged in as a provider to manage availability.
-              </p>
+      <PageShell>
+        <PageHeader
+          title="Provider availability"
+          description="Set the weekly times when pet owners can request your services."
+        />
+        <PageSection aria-label="Sign in required">
+          <EmptyState
+            variant="panel"
+            title="Sign in to manage availability"
+            description="You need to be logged in as a provider to manage availability."
+            primaryAction={
               <Button onClick={() => router.push("/auth/login")}>
                 Go to Login
               </Button>
-            </CardContent>
-          </Card>
-        </Container>
-      </main>
+            }
+          />
+        </PageSection>
+      </PageShell>
     );
   }
 
   if (!provider) {
     return (
-      <main className="min-h-screen bg-white py-16">
-        <Container>
-          <Card className="max-w-md">
-            <CardHeader>
-              <CardTitle>Provider Availability</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-gray-700">
-                You don&apos;t have a provider profile yet.
-              </p>
+      <PageShell>
+        <PageHeader
+          title="Provider availability"
+          description="Set the weekly times when pet owners can request your services."
+        />
+        <PageSection aria-label="Provider profile required">
+          <EmptyState
+            variant="panel"
+            title="Create your provider profile"
+            description="You don’t have a provider profile yet."
+            primaryAction={
               <Button onClick={() => router.push("/provider/profile")}>
                 Create provider profile
               </Button>
-            </CardContent>
-          </Card>
-        </Container>
-      </main>
+            }
+          />
+        </PageSection>
+      </PageShell>
     );
   }
 
   return (
-    <main className="min-h-screen bg-white py-16">
-      <Container>
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900">
-              Weekly availability
-            </h1>
-            <p className="text-sm text-gray-600 mt-1">
-              Set when you&apos;re available for bookings. Owners can only
-              request times inside these windows.
-            </p>
-          </div>
+    <PageShell>
+      <PageHeader
+        title="Provider availability"
+        description="Set when you’re available for bookings. Owners can only request times inside these windows."
+        actions={
           <Button
             variant="outline"
-            className="rounded-full"
+            className="h-auto min-h-9 whitespace-normal rounded-full py-2 text-center"
             onClick={() => router.push("/providers")}
           >
             Back to dashboard
           </Button>
-        </div>
+        }
+      />
 
-        {errorMsg && (
-          <p className="text-sm text-red-600 mb-3">{errorMsg}</p>
-        )}
-        {successMsg && (
-          <p className="text-sm text-green-600 mb-3">{successMsg}</p>
-        )}
+      {errorMsg && <FeedbackAlert variant="error">{errorMsg}</FeedbackAlert>}
+      {successMsg && (
+        <FeedbackAlert variant="success">{successMsg}</FeedbackAlert>
+      )}
 
-        {/* Weekly grid */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8">
+      {/* Weekly grid */}
+      <PageSection
+        title="Weekly schedule"
+        description="Manage each day’s booking windows and availability status."
+      >
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {dayNames.map((label, dayIndex) => {
             const slotsForDay = availability.filter(
               (slot) => slot.weekday === dayIndex
@@ -332,46 +343,40 @@ export default function ProviderAvailabilityPage() {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: dayIndex * 0.04 }}
-                className="h-full"
+                className="h-full gap-0 py-0"
               >
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-semibold">
-                    {label}
+                <CardHeader className="border-b px-4 py-3">
+                  <CardTitle>
+                    <h3 className="text-sm font-semibold">{label}</h3>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2">
+                <CardContent className="p-4">
                   {slotsForDay.length === 0 ? (
-                    <p className="text-xs text-gray-500">
-                      No availability set.
-                    </p>
+                    <EmptyState variant="compact" title="No availability set" />
                   ) : (
-                    <ul className="space-y-2">
+                    <ul className="space-y-3">
                       {slotsForDay.map((slot) => (
                         <li
                           key={slot.id}
-                          className="flex items-center justify-between gap-2 border rounded-md px-2 py-1.5 text-xs"
+                          className="flex flex-col gap-3 rounded-md border p-3 text-xs sm:flex-row sm:items-center sm:justify-between"
                         >
-                          <div>
-                            <p className="font-medium text-gray-800">
+                          <div className="min-w-0 space-y-1.5">
+                            <p className="font-medium text-foreground">
                               {formatTime(slot.start_time)} –{" "}
                               {formatTime(slot.end_time)}
                             </p>
-                            <p
-                              className={`mt-0.5 ${
-                                slot.is_active
-                                  ? "text-green-600"
-                                  : "text-gray-400"
-                              }`}
+                            <StatusBadge
+                              tone={getAvailabilityTone(slot.is_active)}
                             >
                               {slot.is_active ? "Active" : "Paused"}
-                            </p>
+                            </StatusBadge>
                           </div>
-                          <div className="flex flex-col items-end gap-1">
+                          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                             <Button
                               type="button"
                               size="sm"
                               variant="outline"
-                              className="h-6 px-2 text-[11px]"
+                              className="text-xs"
                               disabled={savingId === slot.id}
                               onClick={() => handleToggleActive(slot)}
                             >
@@ -385,7 +390,7 @@ export default function ProviderAvailabilityPage() {
                               type="button"
                               size="sm"
                               variant="ghost"
-                              className="h-6 px-2 text-[11px] text-red-600"
+                              className="text-xs text-red-600"
                               disabled={savingId === slot.id}
                               onClick={() => handleDeleteSlot(slot)}
                             >
@@ -401,25 +406,29 @@ export default function ProviderAvailabilityPage() {
             );
           })}
         </div>
+      </PageSection>
 
-        {/* Add slot form */}
+      {/* Add slot form */}
+      <PageSection
+        title="Add availability"
+        description="Add another booking window to your weekly schedule."
+      >
         <Card className="max-w-xl">
-          <CardHeader>
-            <CardTitle className="text-sm font-semibold">
-              Add availability slot
-            </CardTitle>
-          </CardHeader>
           <CardContent>
             <form
               className="grid gap-3 md:grid-cols-[1.2fr,1fr,1fr] md:items-end"
               onSubmit={handleAddSlot}
             >
               <div className="space-y-1 md:col-span-1">
-                <label className="block text-xs font-medium text-gray-700">
+                <label
+                  htmlFor="availability-day"
+                  className="block text-xs font-medium text-foreground"
+                >
                   Day of week
                 </label>
                 <select
-                  className="w-full border rounded-md px-3 py-2 text-sm"
+                  id="availability-day"
+                  className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
                   value={newWeekday}
                   onChange={(e) => setNewWeekday(Number(e.target.value))}
                 >
@@ -432,10 +441,14 @@ export default function ProviderAvailabilityPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="block text-xs font-medium text-gray-700">
+                <label
+                  htmlFor="availability-start"
+                  className="block text-xs font-medium text-foreground"
+                >
                   Start time
                 </label>
                 <Input
+                  id="availability-start"
                   type="time"
                   value={newStart}
                   onChange={(e) => setNewStart(e.target.value)}
@@ -444,10 +457,14 @@ export default function ProviderAvailabilityPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="block text-xs font-medium text-gray-700">
+                <label
+                  htmlFor="availability-end"
+                  className="block text-xs font-medium text-foreground"
+                >
                   End time
                 </label>
                 <Input
+                  id="availability-end"
                   type="time"
                   value={newEnd}
                   onChange={(e) => setNewEnd(e.target.value)}
@@ -455,15 +472,15 @@ export default function ProviderAvailabilityPage() {
                 />
               </div>
 
-              <div className="md:col-span-3 mt-1">
-                <Button type="submit" className="rounded-full w-full md:w-auto">
+              <div className="mt-1 flex flex-wrap md:col-span-3">
+                <Button type="submit" className="w-full rounded-full md:w-auto">
                   Add slot
                 </Button>
               </div>
             </form>
           </CardContent>
         </Card>
-      </Container>
-    </main>
+      </PageSection>
+    </PageShell>
   );
 }
