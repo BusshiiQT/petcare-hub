@@ -6,12 +6,18 @@ import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabaseBrowser";
 import { requireUser } from "@/lib/requireUser";
 
-import { Container } from "@/components/container";
+import { PageShell } from "@/components/app/page-shell";
+import { PageHeader } from "@/components/app/page-header";
+import { PageSection } from "@/components/app/page-section";
+import { FeedbackAlert } from "@/components/app/feedback-alert";
+import { EmptyState } from "@/components/app/empty-state";
+import { LoadingState } from "@/components/app/loading-state";
 import {
   Card,
   CardHeader,
   CardTitle,
   CardContent,
+  CardFooter,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -131,136 +137,155 @@ export default function PetsPage() {
   // Skeleton loading state
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-white py-16">
-        <Container>
-          <div className="grid gap-8 md:grid-cols-[1.2fr,1fr]">
+      <PageShell>
+        <PageHeader
+          title="My pets"
+          description="Keep your pets’ details organized for easier care and booking."
+        />
+        <LoadingState label="Loading your pets">
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(18rem,0.8fr)]">
             {/* Pets list skeleton */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Your Pets</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {Array.from({ length: 3 }).map((_, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-start justify-between border rounded-md px-3 py-2 text-sm animate-pulse"
-                  >
-                    <div className="space-y-1">
-                      <div className="h-4 w-28 bg-gray-100 rounded-md" />
-                      <div className="h-3 w-24 bg-gray-100 rounded-md" />
-                      <div className="h-3 w-16 bg-gray-100 rounded-md" />
-                      <div className="h-3 w-32 bg-gray-100 rounded-md" />
+            <PageSection title="Your pets">
+              <Card>
+                <CardContent className="space-y-3">
+                  {Array.from({ length: 3 }).map((_, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-start justify-between border rounded-md px-3 py-2 text-sm animate-pulse"
+                    >
+                      <div className="space-y-1">
+                        <div className="h-4 w-28 bg-gray-100 rounded-md" />
+                        <div className="h-3 w-24 bg-gray-100 rounded-md" />
+                        <div className="h-3 w-16 bg-gray-100 rounded-md" />
+                        <div className="h-3 w-32 bg-gray-100 rounded-md" />
+                      </div>
+                      <div className="h-8 w-16 bg-gray-100 rounded-md" />
                     </div>
-                    <div className="h-7 w-14 bg-gray-100 rounded-md" />
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+                  ))}
+                </CardContent>
+              </Card>
+            </PageSection>
 
             {/* Add pet form skeleton */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Add a Pet</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 animate-pulse">
-                <div className="h-4 w-24 bg-gray-100 rounded-md" />
-                <div className="h-9 w-full bg-gray-100 rounded-md" />
-                <div className="h-4 w-24 bg-gray-100 rounded-md" />
-                <div className="h-9 w-full bg-gray-100 rounded-md" />
-                <div className="h-4 w-32 bg-gray-100 rounded-md" />
-                <div className="h-9 w-full bg-gray-100 rounded-md" />
-                <div className="h-4 w-32 bg-gray-100 rounded-md" />
-                <div className="h-16 w-full bg-gray-100 rounded-md" />
-                <div className="h-9 w-full bg-gray-100 rounded-full" />
-              </CardContent>
-            </Card>
+            <PageSection title="Add a pet">
+              <Card>
+                <CardContent className="space-y-3 animate-pulse">
+                  <div className="h-4 w-24 bg-gray-100 rounded-md" />
+                  <div className="h-9 w-full bg-gray-100 rounded-md" />
+                  <div className="h-4 w-24 bg-gray-100 rounded-md" />
+                  <div className="h-9 w-full bg-gray-100 rounded-md" />
+                  <div className="h-4 w-32 bg-gray-100 rounded-md" />
+                  <div className="h-9 w-full bg-gray-100 rounded-md" />
+                  <div className="h-4 w-32 bg-gray-100 rounded-md" />
+                  <div className="h-16 w-full bg-gray-100 rounded-md" />
+                  <div className="h-9 w-full bg-gray-100 rounded-full" />
+                </CardContent>
+              </Card>
+            </PageSection>
           </div>
-        </Container>
-      </main>
+        </LoadingState>
+      </PageShell>
     );
   }
 
   if (!userId) {
     return (
-      <main className="min-h-screen bg-white py-16">
-        <Container>
-          <Card className="max-w-md">
-            <CardHeader>
-              <CardTitle>Your Pets</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-gray-700">
-                You need to be logged in to manage your pets.
-              </p>
+      <PageShell>
+        <PageHeader
+          title="My pets"
+          description="Keep your pets’ details organized for easier care and booking."
+        />
+        <PageSection aria-label="Sign in required">
+          <EmptyState
+            variant="panel"
+            title="Sign in to manage your pets"
+            description="You need to be logged in to manage your pets."
+            primaryAction={
               <Button onClick={() => router.push("/auth/login")}>
                 Go to Login
               </Button>
-            </CardContent>
-          </Card>
-        </Container>
-      </main>
+            }
+          />
+        </PageSection>
+      </PageShell>
     );
   }
 
   return (
-    <main className="min-h-screen bg-white py-16">
-      <Container>
-        <div className="grid gap-8 md:grid-cols-[1.2fr,1fr]">
-          {/* Pets list */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Your Pets</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {pets.length === 0 ? (
-                <p className="text-sm text-gray-600">
-                  You haven&apos;t added any pets yet.
-                </p>
-              ) : (
-                <motion.ul
-                  className="space-y-3"
-                  initial="hidden"
-                  animate="show"
+    <PageShell>
+      <PageHeader
+        title="My pets"
+        description="Keep your pets’ details organized for easier care and booking."
+      />
+
+      <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(18rem,0.8fr)]">
+        {/* Pets list */}
+        <PageSection title="Your pets">
+          {pets.length === 0 ? (
+            <EmptyState
+              variant="panel"
+              title="No pets yet"
+              description="Add your first pet to begin booking trusted pet care."
+              primaryAction={
+                <Button asChild>
+                  <a href="#add-pet">Add pet</a>
+                </Button>
+              }
+            />
+          ) : (
+            <motion.ul
+              className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2"
+              initial="hidden"
+              animate="show"
+              variants={{
+                hidden: { opacity: 0 },
+                show: {
+                  opacity: 1,
+                  transition: { staggerChildren: 0.05 },
+                },
+              }}
+            >
+              {pets.map((pet) => (
+                <motion.li
+                  key={pet.id}
                   variants={{
-                    hidden: { opacity: 0 },
-                    show: {
-                      opacity: 1,
-                      transition: { staggerChildren: 0.05 },
-                    },
+                    hidden: { opacity: 0, y: 8 },
+                    show: { opacity: 1, y: 0 },
                   }}
+                  className="min-w-0"
                 >
-                  {pets.map((pet) => (
-                    <motion.li
-                      key={pet.id}
-                      variants={{
-                        hidden: { opacity: 0, y: 8 },
-                        show: { opacity: 1, y: 0 },
-                      }}
-                      className="flex items-start justify-between border rounded-md px-3 py-2 text-sm"
-                    >
-                      <div>
-                        <p className="font-medium">
-                          {pet.name}{" "}
-                          <span className="text-xs text-gray-500">
-                            ({pet.type})
-                          </span>
-                        </p>
-                        {pet.breed && (
-                          <p className="text-gray-600 text-xs">
-                            Breed: {pet.breed}
+                  <Card className="h-full gap-0 py-0">
+                    <CardHeader className="gap-1 border-b px-4 py-4">
+                      <CardTitle>
+                        <h3 className="text-base leading-5">{pet.name}</h3>
+                      </CardTitle>
+                      <p className="text-sm capitalize text-muted-foreground">
+                        {pet.type}
+                        {pet.breed ? ` · ${pet.breed}` : ""}
+                      </p>
+                    </CardHeader>
+
+                    <CardContent className="flex-1 space-y-4 px-4 py-4">
+                      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+                        <dt className="font-medium text-foreground">Age</dt>
+                        <dd className="text-muted-foreground">
+                          {pet.age != null ? pet.age : "Not provided"}
+                        </dd>
+                      </dl>
+
+                      {pet.notes ? (
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                            Notes
                           </p>
-                        )}
-                        {pet.age != null && (
-                          <p className="text-gray-600 text-xs">
-                            Age: {pet.age}
-                          </p>
-                        )}
-                        {pet.notes && (
-                          <p className="text-gray-500 text-xs mt-1">
+                          <p className="text-sm leading-6 text-foreground">
                             {pet.notes}
                           </p>
-                        )}
-                      </div>
+                        </div>
+                      ) : null}
+                    </CardContent>
+
+                    <CardFooter className="justify-end border-t px-4 py-3">
                       <MotionButton
                         type="button"
                         size="sm"
@@ -272,18 +297,17 @@ export default function PetsPage() {
                       >
                         Delete
                       </MotionButton>
-                    </motion.li>
-                  ))}
-                </motion.ul>
-              )}
-            </CardContent>
-          </Card>
+                    </CardFooter>
+                  </Card>
+                </motion.li>
+              ))}
+            </motion.ul>
+          )}
+        </PageSection>
 
-          {/* Add pet form */}
+        {/* Add pet form */}
+        <PageSection id="add-pet" title="Add a pet" className="scroll-mt-24">
           <Card>
-            <CardHeader>
-              <CardTitle>Add a Pet</CardTitle>
-            </CardHeader>
             <CardContent>
               <form className="space-y-3" onSubmit={handleAddPet}>
                 <div className="space-y-1">
@@ -354,7 +378,7 @@ export default function PetsPage() {
                 </div>
 
                 {errorMsg && (
-                  <p className="text-sm text-red-600 mb-1">{errorMsg}</p>
+                  <FeedbackAlert variant="error">{errorMsg}</FeedbackAlert>
                 )}
 
                 <MotionButton
@@ -369,8 +393,8 @@ export default function PetsPage() {
               </form>
             </CardContent>
           </Card>
-        </div>
-      </Container>
-    </main>
+        </PageSection>
+      </div>
+    </PageShell>
   );
 }
