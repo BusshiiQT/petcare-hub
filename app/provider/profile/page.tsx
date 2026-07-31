@@ -5,8 +5,14 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseBrowser";
 import { requireUser } from "@/lib/requireUser";
 
-import { Container } from "@/components/container";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { PageShell } from "@/components/app/page-shell";
+import { PageHeader } from "@/components/app/page-header";
+import { PageSection } from "@/components/app/page-section";
+import { FeedbackAlert } from "@/components/app/feedback-alert";
+import { EmptyState } from "@/components/app/empty-state";
+import { LoadingState } from "@/components/app/loading-state";
+import { StatusBadge } from "@/components/app/status-badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -164,169 +170,244 @@ export default function ProviderProfilePage() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-white py-16">
-        <Container>
-          <p>Loading provider profile...</p>
-        </Container>
-      </main>
+      <PageShell>
+        <PageHeader
+          title="Provider profile"
+          description="Manage the information pet owners see when choosing care."
+        />
+        <LoadingState label="Loading provider profile">
+          <p className="text-sm text-muted-foreground">
+            Loading provider profile...
+          </p>
+        </LoadingState>
+      </PageShell>
     );
   }
 
   if (!userId) {
     return (
-      <main className="min-h-screen bg-white py-16">
-        <Container>
-          <Card className="max-w-md">
-            <CardHeader>
-              <CardTitle>Become a Provider</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-gray-700">
-                You need to be logged in to create a provider profile.
-              </p>
+      <PageShell>
+        <PageHeader
+          title="Provider profile"
+          description="Manage the information pet owners see when choosing care."
+        />
+        <PageSection aria-label="Sign in required">
+          <EmptyState
+            variant="panel"
+            title="Sign in to create your profile"
+            description="You need to be logged in to create a provider profile."
+            primaryAction={
               <Button onClick={() => router.push("/auth/login")}>
                 Go to Login
               </Button>
-            </CardContent>
-          </Card>
-        </Container>
-      </main>
+            }
+          />
+        </PageSection>
+      </PageShell>
     );
   }
 
   if (!profile) {
     return (
-      <main className="min-h-screen bg-white py-16">
-        <Container>
-          <p>Unable to load provider profile.</p>
-        </Container>
-      </main>
+      <PageShell>
+        <PageHeader
+          title="Provider profile"
+          description="Manage the information pet owners see when choosing care."
+        />
+        <PageSection aria-label="Unable to load profile">
+          <FeedbackAlert variant="error">
+            {errorMsg ?? "Unable to load provider profile."}
+          </FeedbackAlert>
+        </PageSection>
+      </PageShell>
     );
   }
 
   return (
-    <main className="min-h-screen bg-white py-16">
-      <Container>
-        <div className="flex justify-center">
-          <Card className="w-full max-w-2xl">
-            <CardHeader>
-              <CardTitle>Provider Profile</CardTitle>
-            </CardHeader>
+    <PageShell>
+      <PageHeader
+        title="Provider profile"
+        description="Manage the information pet owners see when choosing care."
+      />
+
+      <form className="max-w-3xl space-y-8" onSubmit={handleSave}>
+        <PageSection
+          title="Public profile"
+          description="Introduce yourself and your care experience."
+        >
+          <Card>
+            <CardContent className="space-y-5">
+              <div className="space-y-2">
+                <label
+                  htmlFor="display-name"
+                  className="block text-sm font-medium text-foreground"
+                >
+                  Display name{" "}
+                  <span className="font-normal text-muted-foreground">
+                    (required)
+                  </span>
+                </label>
+                <Input
+                  id="display-name"
+                  value={profile.display_name}
+                  onChange={(e) =>
+                    setProfile({ ...profile, display_name: e.target.value })
+                  }
+                  placeholder="Your provider name"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor="bio"
+                  className="block text-sm font-medium text-foreground"
+                >
+                  Bio
+                </label>
+                <textarea
+                  id="bio"
+                  className="min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
+                  rows={3}
+                  value={profile.bio ?? ""}
+                  onChange={(e) =>
+                    setProfile({ ...profile, bio: e.target.value })
+                  }
+                  placeholder="Tell pet owners about your experience and services."
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </PageSection>
+
+        <PageSection
+          title="Location"
+          description="Help pet owners understand where you provide services."
+        >
+          <Card>
             <CardContent>
-              <form className="space-y-4" onSubmit={handleSave}>
+              <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Display name
+                  <label
+                    htmlFor="city"
+                    className="block text-sm font-medium text-foreground"
+                  >
+                    City
                   </label>
                   <Input
-                    value={profile.display_name}
+                    id="city"
+                    value={profile.city ?? ""}
                     onChange={(e) =>
-                      setProfile({ ...profile, display_name: e.target.value })
+                      setProfile({ ...profile, city: e.target.value })
                     }
-                    placeholder="Your provider name"
-                    required
                   />
                 </div>
-
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Bio
-                  </label>
-                  <textarea
-                    className="w-full border rounded-md px-3 py-2 text-sm"
-                    rows={3}
-                    value={profile.bio ?? ""}
-                    onChange={(e) =>
-                      setProfile({ ...profile, bio: e.target.value })
-                    }
-                    placeholder="Tell pet owners about your experience and services."
-                  />
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      City
-                    </label>
-                    <Input
-                      value={profile.city ?? ""}
-                      onChange={(e) =>
-                        setProfile({ ...profile, city: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      State
-                    </label>
-                    <Input
-                      value={profile.state ?? ""}
-                      onChange={(e) =>
-                        setProfile({ ...profile, state: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Country
-                    </label>
-                    <Input
-                      value={profile.country ?? ""}
-                      onChange={(e) =>
-                        setProfile({ ...profile, country: e.target.value })
-                      }
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Services offered
-                  </label>
-                  <div className="flex flex-wrap gap-3">
-                    {SERVICE_OPTIONS.map((option) => (
-                      <label
-                        key={option.value}
-                        className="flex items-center gap-2 text-sm"
-                      >
-                        <input
-                          type="checkbox"
-                          className="h-4 w-4"
-                          checked={profile.services?.includes(option.value)}
-                          onChange={() => toggleService(option.value)}
-                        />
-                        {option.label}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Hourly rate (USD)
+                  <label
+                    htmlFor="state"
+                    className="block text-sm font-medium text-foreground"
+                  >
+                    State
                   </label>
                   <Input
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={profile.hourly_rate ?? ""}
+                    id="state"
+                    value={profile.state ?? ""}
                     onChange={(e) =>
-                      setProfile({
-                        ...profile,
-                        hourly_rate:
-                          e.target.value === ""
-                            ? null
-                            : Number(e.target.value),
-                      })
+                      setProfile({ ...profile, state: e.target.value })
                     }
                   />
                 </div>
+                <div className="space-y-2">
+                  <label
+                    htmlFor="country"
+                    className="block text-sm font-medium text-foreground"
+                  >
+                    Country
+                  </label>
+                  <Input
+                    id="country"
+                    value={profile.country ?? ""}
+                    onChange={(e) =>
+                      setProfile({ ...profile, country: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </PageSection>
 
-                <div className="flex items-center gap-2">
+        <PageSection
+          title="Services and pricing"
+          description="Choose the care you offer and set your hourly rate."
+        >
+          <Card>
+            <CardContent className="space-y-5">
+              <fieldset className="space-y-3">
+                <legend className="text-sm font-medium text-foreground">
+                  Services offered
+                </legend>
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {SERVICE_OPTIONS.map((option) => (
+                    <label
+                      key={option.value}
+                      htmlFor={`service-${option.value}`}
+                      className="flex min-h-10 items-center gap-2 rounded-md border border-input px-3 py-2 text-sm text-foreground"
+                    >
+                      <input
+                        id={`service-${option.value}`}
+                        type="checkbox"
+                        className="size-4 shrink-0 accent-primary"
+                        checked={profile.services?.includes(option.value)}
+                        onChange={() => toggleService(option.value)}
+                      />
+                      {option.label}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor="hourly-rate"
+                  className="block text-sm font-medium text-foreground"
+                >
+                  Hourly rate (USD)
+                </label>
+                <Input
+                  id="hourly-rate"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={profile.hourly_rate ?? ""}
+                  onChange={(e) =>
+                    setProfile({
+                      ...profile,
+                      hourly_rate:
+                        e.target.value === "" ? null : Number(e.target.value),
+                    })
+                  }
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </PageSection>
+
+        <PageSection
+          title="Profile visibility"
+          description="Control whether pet owners can discover your profile."
+        >
+          <Card>
+            <CardContent className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <label
+                  htmlFor="is_active"
+                  className="flex min-h-10 items-center gap-3 text-sm text-foreground select-none"
+                >
                   <input
                     id="is_active"
                     type="checkbox"
-                    className="h-4 w-4"
+                    className="size-4 shrink-0 accent-primary"
                     checked={profile.is_active}
                     onChange={(e) =>
                       setProfile({
@@ -335,33 +416,35 @@ export default function ProviderProfilePage() {
                       })
                     }
                   />
-                  <label
-                    htmlFor="is_active"
-                    className="text-sm text-gray-700 select-none"
-                  >
-                    Show my profile in search results
-                  </label>
-                </div>
-
-                {errorMsg && (
-                  <p className="text-sm text-red-600 mb-1">{errorMsg}</p>
-                )}
-                {successMsg && (
-                  <p className="text-sm text-green-600 mb-1">{successMsg}</p>
-                )}
-
-                <Button
-                  type="submit"
-                  className="w-full rounded-full"
-                  disabled={isSaving}
-                >
-                  {isSaving ? "Saving..." : "Save provider profile"}
-                </Button>
-              </form>
+                  Show my profile in search results
+                </label>
+                <StatusBadge tone={profile.is_active ? "success" : "neutral"}>
+                  {profile.is_active ? "Visible" : "Hidden"}
+                </StatusBadge>
+              </div>
             </CardContent>
           </Card>
+        </PageSection>
+
+        <div className="space-y-4">
+          {errorMsg && (
+            <FeedbackAlert variant="error">{errorMsg}</FeedbackAlert>
+          )}
+          {successMsg && (
+            <FeedbackAlert variant="success">{successMsg}</FeedbackAlert>
+          )}
+
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <Button
+              type="submit"
+              className="min-w-44 rounded-full"
+              disabled={isSaving}
+            >
+              {isSaving ? "Saving..." : "Save provider profile"}
+            </Button>
+          </div>
         </div>
-      </Container>
-    </main>
+      </form>
+    </PageShell>
   );
 }
