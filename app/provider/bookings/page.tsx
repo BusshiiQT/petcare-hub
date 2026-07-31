@@ -6,13 +6,17 @@ import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabaseBrowser";
 import { requireUser } from "@/lib/requireUser";
 
-import { Container } from "@/components/container";
+import { PageShell } from "@/components/app/page-shell";
+import { PageHeader } from "@/components/app/page-header";
+import { PageSection } from "@/components/app/page-section";
 import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "@/components/ui/card";
+  StatusBadge,
+  type StatusBadgeTone,
+} from "@/components/app/status-badge";
+import { FeedbackAlert } from "@/components/app/feedback-alert";
+import { EmptyState } from "@/components/app/empty-state";
+import { LoadingState } from "@/components/app/loading-state";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled";
@@ -129,6 +133,21 @@ export default function ProviderBookingsPage() {
     }
   };
 
+  const getStatusTone = (status: BookingStatus): StatusBadgeTone => {
+    switch (status) {
+      case "pending":
+        return "warning";
+      case "confirmed":
+        return "info";
+      case "completed":
+        return "success";
+      case "cancelled":
+        return "destructive";
+      default:
+        return "neutral";
+    }
+  };
+
   const handleUpdateStatus = async (
     bookingId: string,
     status: BookingStatus
@@ -157,75 +176,92 @@ export default function ProviderBookingsPage() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-white py-16">
-        <Container>
-          <p>Loading bookings...</p>
-        </Container>
-      </main>
+      <PageShell>
+        <PageHeader
+          title="Provider bookings"
+          description="Review and manage bookings for your services."
+        />
+        <PageSection title="Bookings for your services">
+          <LoadingState label="Loading provider bookings">
+            <p className="text-sm text-muted-foreground">Loading bookings...</p>
+          </LoadingState>
+        </PageSection>
+      </PageShell>
     );
   }
 
   if (!userId) {
     return (
-      <main className="min-h-screen bg-white py-16">
-        <Container>
-          <Card className="max-w-md">
-            <CardHeader>
-              <CardTitle>Provider Bookings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-gray-700">
-                You need to be logged in as a provider to view bookings.
-              </p>
+      <PageShell>
+        <PageHeader
+          title="Provider bookings"
+          description="Review and manage bookings for your services."
+        />
+        <PageSection aria-label="Sign in required">
+          <EmptyState
+            variant="panel"
+            title="Sign in to view provider bookings"
+            description="You need to be logged in as a provider to view bookings."
+            primaryAction={
               <Button onClick={() => router.push("/auth/login")}>
                 Go to Login
               </Button>
-            </CardContent>
-          </Card>
-        </Container>
-      </main>
+            }
+          />
+        </PageSection>
+      </PageShell>
     );
   }
 
   if (hasProviderProfile === false) {
     return (
-      <main className="min-h-screen bg-white py-16">
-        <Container>
-          <Card className="max-w-md">
-            <CardHeader>
-              <CardTitle>Provider Bookings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-gray-700">
-                You don&apos;t have a provider profile yet.
-              </p>
+      <PageShell>
+        <PageHeader
+          title="Provider bookings"
+          description="Review and manage bookings for your services."
+        />
+        <PageSection aria-label="Provider profile required">
+          <EmptyState
+            variant="panel"
+            title="Create your provider profile"
+            description="You don’t have a provider profile yet."
+            primaryAction={
               <Button onClick={() => router.push("/provider/profile")}>
                 Create provider profile
               </Button>
-            </CardContent>
-          </Card>
-        </Container>
-      </main>
+            }
+          />
+        </PageSection>
+      </PageShell>
     );
   }
 
   return (
-    <main className="min-h-screen bg-white py-16">
-      <Container>
-        <Card>
-          <CardHeader>
-            <CardTitle>Bookings for Your Services</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {errorMsg && (
-              <p className="text-sm text-red-600 mb-2">{errorMsg}</p>
-            )}
+    <PageShell>
+      <PageHeader
+        title="Provider bookings"
+        description="Review and manage bookings for your services."
+      />
+      <PageSection
+        title="Bookings for your services"
+        contentClassName="space-y-4"
+      >
+        {errorMsg && <FeedbackAlert variant="error">{errorMsg}</FeedbackAlert>}
 
-            {bookings.length === 0 ? (
-              <p className="text-sm text-gray-600">
-                No one has booked you yet.
-              </p>
-            ) : (
+        {bookings.length === 0 ? (
+          <EmptyState
+            variant="panel"
+            title="No bookings yet"
+            description="New client bookings will appear here."
+            primaryAction={
+              <Button onClick={() => router.push("/provider/availability")}>
+                Manage availability
+              </Button>
+            }
+          />
+        ) : (
+          <Card>
+            <CardContent className="space-y-4">
               <motion.ul
                 className="space-y-3"
                 initial="hidden"
@@ -251,15 +287,15 @@ export default function ProviderBookingsPage() {
                       }}
                       className="border rounded-md px-3 py-2 text-sm flex flex-col gap-2"
                     >
-                      <div className="flex items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="font-medium">
                           {petInfo
                             ? `${petInfo.name} (${petInfo.type})`
                             : "Pet not found"}
                         </div>
-                        <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700">
+                        <StatusBadge tone={getStatusTone(b.status)}>
                           {formatStatus(b.status)}
-                        </span>
+                        </StatusBadge>
                       </div>
 
                       <div className="text-xs text-gray-600">
@@ -357,10 +393,10 @@ export default function ProviderBookingsPage() {
                   );
                 })}
               </motion.ul>
-            )}
-          </CardContent>
-        </Card>
-      </Container>
-    </main>
+            </CardContent>
+          </Card>
+        )}
+      </PageSection>
+    </PageShell>
   );
 }
