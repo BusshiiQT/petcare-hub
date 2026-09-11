@@ -13,6 +13,23 @@ type Body = {
   notes?: string | null;
 };
 
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const instantPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/;
+
+function isBody(value: unknown): value is Body {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const b = value as Record<string, unknown>;
+  return (
+    typeof b.accessToken === "string" &&
+    typeof b.providerProfileId === "string" && uuidPattern.test(b.providerProfileId) &&
+    typeof b.petId === "string" && uuidPattern.test(b.petId) &&
+    typeof b.serviceType === "string" && ["walk", "sitting", "training", "other"].includes(b.serviceType) &&
+    typeof b.startISO === "string" && instantPattern.test(b.startISO) &&
+    typeof b.endISO === "string" && instantPattern.test(b.endISO) &&
+    (b.notes === undefined || b.notes === null || typeof b.notes === "string")
+  );
+}
+
 function rangesOverlap(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date) {
   return aStart < bEnd && aEnd > bStart;
 }
@@ -36,7 +53,18 @@ export async function POST(req: Request) {
       );
     }
 
-    const body = (await req.json()) as Body;
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ ok: false, error: "Invalid JSON body." }, { status: 400 });
+    }
+    if (!isBody(body)) {
+      return NextResponse.json(
+        { ok: false, error: "Expected an access token, provider and pet UUIDs, a valid service, ISO timestamps with timezone, and optional text notes." },
+        { status: 400 }
+      );
+    }
 
     if (!body.accessToken) {
       return NextResponse.json(
@@ -82,6 +110,31 @@ export async function POST(req: Request) {
         { ok: false, error: "End must be after start." },
         { status: 400 }
       );
+    }
+    if (start.getTime() <= Date.now()) {
+      return NextResponse.json({ ok: false, error: "Booking must be in the future." }, { status: 400 });
+    }
+
+    const { data: profile, error: profileError } = await admin
+      .from("profiles").select("role").eq("id", userId).maybeSingle();
+    if (profileError) {
+      return NextResponse.json({ ok: false, error: "Failed to validate owner." }, { status: 500 });
+    }
+    if (!profile || !["owner", "both"].includes(profile.role)) {
+      return NextResponse.json({ ok: false, error: "Only owners can create bookings." }, { status: 403 });
+    }
+
+    const { data: provider, error: providerError } = await admin
+      .from("provider_profiles").select("is_active, services")
+      .eq("id", body.providerProfileId).maybeSingle();
+    if (providerError) {
+      return NextResponse.json({ ok: false, error: "Failed to validate provider." }, { status: 500 });
+    }
+    if (!provider) {
+      return NextResponse.json({ ok: false, error: "Provider not found." }, { status: 404 });
+    }
+    if (!provider.is_active || !Array.isArray(provider.services) || !provider.services.includes(body.serviceType)) {
+      return NextResponse.json({ ok: false, error: "Provider is inactive or does not offer that service." }, { status: 400 });
     }
 
     // 0) Validate pet belongs to user

@@ -156,10 +156,13 @@ export default function ProviderBookingsPage() {
     setErrorMsg(null);
 
     try {
-      const { error } = await supabase
-        .from("bookings")
-        .update({ status })
-        .eq("id", bookingId);
+      const current = bookings.find((b) => b.id === bookingId);
+      if (!current) throw new Error("Booking not found.");
+      const { error } = await supabase.rpc("transition_provider_booking", {
+        booking_id: bookingId,
+        expected_status: current.status,
+        next_status: status,
+      });
 
       if (error) throw error;
 
