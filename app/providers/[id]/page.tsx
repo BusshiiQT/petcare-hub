@@ -34,9 +34,16 @@ type PetSummary = {
 
 type ReviewRow = {
   id: string;
+  booking_id: string | null;
   rating: number;
   comment: string | null;
   created_at: string;
+};
+
+type ReviewBooking = {
+  id: string;
+  service_type: string | null;
+  start_time: string;
 };
 
 type AvailabilitySlot = {
@@ -131,6 +138,9 @@ export default function ProviderDetailPage() {
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [reviewSuccess, setReviewSuccess] = useState<string | null>(null);
+  const [eligibleReviewBookings, setEligibleReviewBookings] = useState<ReviewBooking[]>([]);
+  const [selectedReviewBookingId, setSelectedReviewBookingId] = useState("");
+  const [reviewEligibilityError, setReviewEligibilityError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -138,6 +148,11 @@ export default function ProviderDetailPage() {
 
       setIsLoading(true);
       setLoadError(null);
+      setEligibleReviewBookings([]);
+      setSelectedReviewBookingId("");
+      setReviewEligibilityError(null);
+      setReviewError(null);
+      setReviewSuccess(null);
 
       const user = await requireUser(() => router.replace("/auth/login"));
 
@@ -183,7 +198,7 @@ export default function ProviderDetailPage() {
 
       const { data: reviewsData, error: reviewsError } = await supabase
         .from("reviews")
-        .select("id, rating, comment, created_at")
+        .select("id, booking_id, rating, comment, created_at")
         .eq("provider_profile_id", providerId)
         .order("created_at", { ascending: false });
 
@@ -198,6 +213,29 @@ export default function ProviderDetailPage() {
         } else {
           setAvgRating(null);
         }
+      }
+
+      const [completedResult, reviewedResult] = await Promise.all([
+        supabase.from("bookings")
+          .select("id, service_type, start_time")
+          .eq("owner_id", user.id)
+          .eq("provider_profile_id", providerId)
+          .eq("status", "completed")
+          .order("start_time", { ascending: false }),
+        supabase.from("reviews")
+          .select("booking_id")
+          .eq("owner_id", user.id)
+          .eq("provider_profile_id", providerId)
+          .not("booking_id", "is", null),
+      ]);
+
+      if (completedResult.error || reviewedResult.error) {
+        setReviewEligibilityError("Unable to load completed services. Refresh to try again.");
+      } else {
+        const reviewedIds = new Set((reviewedResult.data ?? []).map((r) => r.booking_id));
+        const eligible = (completedResult.data ?? []).filter((b) => !reviewedIds.has(b.id));
+        setEligibleReviewBookings(eligible);
+        setSelectedReviewBookingId(eligible[0]?.id ?? "");
       }
 
       const { data: availData, error: availError } = await supabase
@@ -496,7 +534,8 @@ export default function ProviderDetailPage() {
 
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userId || !provider) return;
+    if (!userId || !provider || isSubmittingReview ||
+        !eligibleReviewBookings.some((b) => b.id === selectedReviewBookingId)) return;
 
     setReviewError(null);
     setReviewSuccess(null);
@@ -508,35 +547,51 @@ export default function ProviderDetailPage() {
 
     setIsSubmittingReview(true);
 
-    const { data, error } = await supabase
-      .from("reviews")
-      .insert({
-        provider_profile_id: provider.id,
-        owner_id: userId,
-        rating: reviewRating,
-        comment: reviewComment || null,
-      })
-      .select("id, rating, comment, created_at")
-      .single();
+    const removeReviewedBooking = () => {
+      const remaining = eligibleReviewBookings.filter((b) => b.id !== selectedReviewBookingId);
+      setEligibleReviewBookings(remaining);
+      setSelectedReviewBookingId(remaining[0]?.id ?? "");
+    };
 
-    setIsSubmittingReview(false);
+    try {
+      const { data, error } = await supabase
+        .rpc("create_review_for_booking", {
+          booking_id: selectedReviewBookingId,
+          rating: reviewRating,
+          comment: reviewComment,
+        })
+        .select("id, booking_id, rating, comment, created_at")
+        .single();
 
-    if (error) {
-      console.error("Error submitting review:", error);
+      if (error) {
+        console.error("Error submitting review:", error);
+        if (error.code === "23505" || error.code === "42501") {
+          removeReviewedBooking();
+          setReviewError(error.code === "23505"
+            ? "This service already has a review. Refresh to see the latest reviews."
+            : "This service is no longer available to review. Refresh to check your session and completed services.");
+        } else {
+          setReviewError("Failed to submit review. Please try again.");
+        }
+        return;
+      }
+
+      const newReview = data as ReviewRow;
+      const newReviews = [newReview, ...reviews];
+      setReviews(newReviews);
+
+      const sum = newReviews.reduce((acc, r) => acc + (r.rating ?? 0), 0);
+      setAvgRating(sum / newReviews.length);
+
+      setReviewRating(5);
+      setReviewComment("");
+      setReviewSuccess("Thank you for your review!");
+      removeReviewedBooking();
+    } catch {
       setReviewError("Failed to submit review. Please try again.");
-      return;
+    } finally {
+      setIsSubmittingReview(false);
     }
-
-    const newReview = data as ReviewRow;
-    const newReviews = [newReview, ...reviews];
-    setReviews(newReviews);
-
-    const sum = newReviews.reduce((acc, r) => acc + (r.rating ?? 0), 0);
-    setAvgRating(sum / newReviews.length);
-
-    setReviewRating(5);
-    setReviewComment("");
-    setReviewSuccess("Thank you for your review!");
   };
 
   if (isLoading) {
@@ -987,6 +1042,32 @@ export default function ProviderDetailPage() {
             <Card>
               <CardContent>
                 <form className="space-y-4" onSubmit={handleSubmitReview}>
+                  {reviewEligibilityError ? (
+                    <FeedbackAlert variant="error">{reviewEligibilityError}</FeedbackAlert>
+                  ) : eligibleReviewBookings.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      Reviews can be left after a completed service, once per booking. You have no unreviewed completed services with this provider.
+                    </p>
+                  ) : eligibleReviewBookings.length > 1 ? (
+                    <div className="space-y-1.5">
+                      <label htmlFor="review-booking" className="block text-xs font-medium text-foreground">
+                        Completed service
+                      </label>
+                      <select
+                        id="review-booking"
+                        className="h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
+                        value={selectedReviewBookingId}
+                        onChange={(e) => setSelectedReviewBookingId(e.target.value)}
+                        disabled={isSubmittingReview}
+                      >
+                        {eligibleReviewBookings.map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {b.service_type ?? "Service"} — {new Date(b.start_time).toLocaleString()}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : null}
                   <div className="space-y-1.5">
                     <label
                       htmlFor="review-rating"
@@ -1034,7 +1115,7 @@ export default function ProviderDetailPage() {
                     </FeedbackAlert>
                   )}
 
-                  <Button type="submit" className="w-full rounded-full" disabled={isSubmittingReview}>
+                  <Button type="submit" className="w-full rounded-full" disabled={isSubmittingReview || !selectedReviewBookingId || !!reviewEligibilityError}>
                     {isSubmittingReview ? "Submitting..." : "Submit review"}
                   </Button>
                 </form>

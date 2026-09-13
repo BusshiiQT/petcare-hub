@@ -28,8 +28,8 @@ type BookingRow = {
   start_time: string;
   end_time: string;
   notes: string | null;
-  pet: { name: string; type: "dog" | "cat" | "other" }[] | null;
-  owner: { full_name: string | null }[] | null;
+  pet: { name: string; type: string | null } | null;
+  owner: { full_name: string | null } | null;
 };
 
 const MotionButton = motion(Button);
@@ -89,9 +89,6 @@ export default function ProviderBookingsPage() {
             pet:pet_id (
               name,
               type
-            ),
-            owner:owner_id (
-              full_name
             )
           `
           )
@@ -100,7 +97,19 @@ export default function ProviderBookingsPage() {
 
         if (error) throw error;
 
-        setBookings((data || []) as BookingRow[]);
+        const rows = data || [];
+        const { data: identities, error: identityError } = await supabase.rpc(
+          "get_provider_booking_owner_identity",
+          { booking_ids: rows.map((booking) => booking.id) }
+        );
+        if (identityError) throw identityError;
+        const owners = new Map(
+          (identities || []).map((identity) => [identity.booking_id, identity])
+        );
+        setBookings(rows.map((booking) => ({
+          ...booking,
+          owner: owners.get(booking.id) ?? null,
+        })) as BookingRow[]);
       } catch (err) {
         console.error("Error loading provider bookings:", err);
         setErrorMsg("Failed to load bookings.");
@@ -156,10 +165,13 @@ export default function ProviderBookingsPage() {
     setErrorMsg(null);
 
     try {
-      const { error } = await supabase
-        .from("bookings")
-        .update({ status })
-        .eq("id", bookingId);
+      const current = bookings.find((b) => b.id === bookingId);
+      if (!current) throw new Error("Booking not found.");
+      const { error } = await supabase.rpc("transition_provider_booking", {
+        booking_id: bookingId,
+        expected_status: current.status,
+        next_status: status,
+      });
 
       if (error) throw error;
 
@@ -275,8 +287,8 @@ export default function ProviderBookingsPage() {
                 }}
               >
                 {bookings.map((b) => {
-                  const petInfo = b.pet?.[0] ?? null;
-                  const ownerInfo = b.owner?.[0] ?? null;
+                  const petInfo = b.pet;
+                  const ownerInfo = b.owner;
 
                   return (
                     <motion.li
