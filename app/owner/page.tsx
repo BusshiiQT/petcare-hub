@@ -28,8 +28,8 @@ type BookingRow = {
   status: BookingStatus;
   start_time: string;
   end_time: string;
-  provider: { display_name: string }[] | null;
-  pet: { name: string; type: "dog" | "cat" | "other" }[] | null;
+  provider: { display_name: string } | null;
+  pet: { name: string; type: string | null } | null;
 };
 
 export default function OwnerDashboardPage() {
@@ -239,8 +239,8 @@ export default function OwnerDashboardPage() {
             ) : (
               <ul className="space-y-3">
                 {upcoming.map((b, index) => {
-                  const petInfo = b.pet?.[0] ?? null;
-                  const providerInfo = b.provider?.[0] ?? null;
+                  const petInfo = b.pet;
+                  const providerInfo = b.provider;
 
                   return (
                     <motion.li

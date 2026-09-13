@@ -26,8 +26,8 @@ type BookingRow = {
   start_time: string;
   end_time: string;
   notes: string | null;
-  provider: { display_name: string }[] | null;
-  pet: { name: string; type: "dog" | "cat" | "other" }[] | null;
+  provider: { display_name: string } | null;
+  pet: { name: string; type: string | null } | null;
 };
 
 export default function BookingsPage() {
@@ -217,8 +217,8 @@ export default function BookingsPage() {
                 }}
               >
                 {bookings.map((b) => {
-                  const petInfo = b.pet?.[0] ?? null;
-                  const providerInfo = b.provider?.[0] ?? null;
+                  const petInfo = b.pet;
+                  const providerInfo = b.provider;
 
                   return (
                     <motion.li

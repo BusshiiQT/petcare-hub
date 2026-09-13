@@ -28,8 +28,8 @@ type BookingRow = {
   start_time: string;
   end_time: string;
   notes: string | null;
-  pet: { name: string; type: "dog" | "cat" | "other" }[] | null;
-  owner: { full_name: string | null }[] | null;
+  pet: { name: string; type: string | null } | null;
+  owner: { full_name: string | null } | null;
 };
 
 const MotionButton = motion(Button);
@@ -278,8 +278,8 @@ export default function ProviderBookingsPage() {
                 }}
               >
                 {bookings.map((b) => {
-                  const petInfo = b.pet?.[0] ?? null;
-                  const ownerInfo = b.owner?.[0] ?? null;
+                  const petInfo = b.pet;
+                  const ownerInfo = b.owner;
 
                   return (
                     <motion.li

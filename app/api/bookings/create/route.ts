@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/database.types";
 
 type ServiceType = "walk" | "sitting" | "training" | "other";
 
@@ -74,7 +75,7 @@ export async function POST(req: Request) {
     }
 
     // Verify token → user identity
-    const authClient = createClient(supabaseUrl, anonKey, {
+    const authClient = createClient<Database>(supabaseUrl, anonKey, {
       auth: { persistSession: false },
     });
 
@@ -92,7 +93,7 @@ export async function POST(req: Request) {
     const userId = authData.user.id;
 
     // Admin client for DB checks + insert
-    const admin = createClient(supabaseUrl, serviceRoleKey, {
+    const admin = createClient<Database>(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false },
     });
 
@@ -120,7 +121,7 @@ export async function POST(req: Request) {
     if (profileError) {
       return NextResponse.json({ ok: false, error: "Failed to validate owner." }, { status: 500 });
     }
-    if (!profile || !["owner", "both"].includes(profile.role)) {
+    if (!profile || !["owner", "both"].includes(profile.role ?? "")) {
       return NextResponse.json({ ok: false, error: "Only owners can create bookings." }, { status: 403 });
     }
 
