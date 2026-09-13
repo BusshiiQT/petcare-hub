@@ -127,7 +127,7 @@ export type Database = {
           full_name: string | null
           id: string
           phone: string | null
-          role: string | null
+          role: string
           updated_at: string | null
         }
         Insert: {
@@ -136,7 +136,7 @@ export type Database = {
           full_name?: string | null
           id: string
           phone?: string | null
-          role?: string | null
+          role?: string
           updated_at?: string | null
         }
         Update: {
@@ -145,7 +145,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           phone?: string | null
-          role?: string | null
+          role?: string
           updated_at?: string | null
         }
         Relationships: []
@@ -311,6 +311,14 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      get_provider_booking_owner_identity: {
+        Args: { booking_ids: string[] }
+        Returns: {
+          booking_id: string
+          full_name: string
+          owner_id: string
+        }[]
       }
       transition_provider_booking: {
         Args: {

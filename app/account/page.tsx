@@ -30,7 +30,8 @@ export default function AccountPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Profile settings (user metadata)
+  // Application profile settings
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const [profileFullName, setProfileFullName] = useState("");
   const [profilePhone, setProfilePhone] = useState("");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
@@ -63,13 +64,15 @@ export default function AccountPage() {
         setUserId(user.id);
         setUserEmail(user.email ?? null);
 
-        // Load profile fields from user metadata
-        const meta = (user.user_metadata || {}) as {
-          full_name?: string;
-          phone?: string;
-        };
-        setProfileFullName(meta.full_name ?? "");
-        setProfilePhone(meta.phone ?? "");
+        const { data: accountProfile, error: profileError } = await supabase
+          .from("profiles")
+          .select("full_name, phone")
+          .eq("id", user.id)
+          .single();
+        if (profileError) throw profileError;
+        setProfileFullName(accountProfile.full_name ?? "");
+        setProfilePhone(accountProfile.phone ?? "");
+        setProfileLoaded(true);
 
         // Check for provider profile
         const { data: profile, error: providerError } = await supabase
@@ -106,22 +109,26 @@ export default function AccountPage() {
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!userId || !profileLoaded) return;
     setProfileMessage(null);
     setIsSavingProfile(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({
-        data: {
-          full_name: profileFullName || null,
-          phone: profilePhone || null,
-        },
-      });
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          full_name: profileFullName.trim() || null,
+          phone: profilePhone.trim() || null,
+        })
+        .eq("id", userId)
+        .select("id")
+        .single();
 
       if (error) throw error;
 
       setProfileMessage("Profile updated successfully.");
     } catch (err) {
-      console.error("Error updating profile metadata:", err);
+      console.error("Error updating profile:", err);
       setProfileMessage("Failed to update profile.");
     } finally {
       setIsSavingProfile(false);
@@ -364,7 +371,7 @@ export default function AccountPage() {
                   <Button
                     type="submit"
                     className="rounded-full"
-                    disabled={isSavingProfile}
+                    disabled={isSavingProfile || !profileLoaded}
                   >
                     {isSavingProfile ? "Saving..." : "Save changes"}
                   </Button>

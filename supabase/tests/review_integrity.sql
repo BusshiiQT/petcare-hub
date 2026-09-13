@@ -25,10 +25,6 @@ INSERT INTO auth.users (id) VALUES
   ('10000000-0000-0000-0000-000000000001'),
   ('10000000-0000-0000-0000-000000000002'),
   ('10000000-0000-0000-0000-000000000003');
-INSERT INTO public.profiles (id, role) VALUES
-  ('10000000-0000-0000-0000-000000000001', 'owner'),
-  ('10000000-0000-0000-0000-000000000002', 'owner'),
-  ('10000000-0000-0000-0000-000000000003', 'provider');
 INSERT INTO public.provider_profiles (id, user_id, display_name) VALUES
   ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000003', 'Review test provider');
 INSERT INTO public.bookings (id, owner_id, provider_profile_id, status, start_time, end_time)

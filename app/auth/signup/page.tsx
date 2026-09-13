@@ -24,7 +24,7 @@ export default function SignUpPage() {
     setSuccessMsg(null);
     setIsLoading(true);
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
     });
@@ -36,7 +36,9 @@ export default function SignUpPage() {
       return;
     }
 
-    setSuccessMsg("Account created! Check your email for a confirmation link.");
+    setSuccessMsg(data.session
+      ? "Account created! You are now signed in."
+      : "Account created! Check your email for a confirmation link.");
     setEmail("");
     setPassword("");
   };
