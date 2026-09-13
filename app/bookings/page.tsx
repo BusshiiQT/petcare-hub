@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabaseBrowser";
@@ -21,11 +21,12 @@ import { Button } from "@/components/ui/button";
 
 type BookingRow = {
   id: string;
-  service_type: "walk" | "sitting" | "training" | "other";
+  service_type: "walk" | "sitting" | "training" | "other" | null;
   status: "pending" | "confirmed" | "completed" | "cancelled";
   start_time: string;
   end_time: string;
   notes: string | null;
+  total_price: number | null;
   provider: { display_name: string } | null;
   pet: { name: string; type: string | null } | null;
 };
@@ -36,6 +37,15 @@ export default function BookingsPage() {
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [selectedBooking, setSelectedBooking] = useState<BookingRow | null>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const detailsTriggerRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    if (selectedBooking && dialogRef.current && !dialogRef.current.open) {
+      dialogRef.current.showModal();
+    }
+  }, [selectedBooking]);
 
   useEffect(() => {
     const loadBookings = async () => {
@@ -61,6 +71,7 @@ export default function BookingsPage() {
             start_time,
             end_time,
             notes,
+            total_price,
             provider:provider_profile_id (
               display_name
             ),
@@ -90,7 +101,10 @@ export default function BookingsPage() {
   const formatDateTime = (iso: string) => {
     const d = new Date(iso);
     if (isNaN(d.getTime())) return iso;
-    return d.toLocaleString();
+    return d.toLocaleString(undefined, {
+      year: "numeric", month: "short", day: "numeric",
+      hour: "numeric", minute: "2-digit", timeZoneName: "short",
+    });
   };
 
   const formatStatus = (status: BookingRow["status"]) => {
@@ -232,8 +246,8 @@ export default function BookingsPage() {
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="font-medium">
                           {petInfo
-                            ? `${petInfo.name} (${petInfo.type})`
-                            : "Pet not found"}
+                            ? `${petInfo.name}${petInfo.type ? ` (${petInfo.type})` : ""}`
+                            : "Pet details unavailable"}
                         </div>
                         <StatusBadge tone={getStatusTone(b.status)}>
                           {formatStatus(b.status)}
@@ -243,19 +257,23 @@ export default function BookingsPage() {
                       <div className="text-xs text-gray-600">
                         {providerInfo
                           ? `With: ${providerInfo.display_name}`
-                          : "Provider not found"}
+                          : "Provider details unavailable"}
                       </div>
 
                       <div className="text-xs text-gray-600">
-                        {b.service_type} • {formatDateTime(b.start_time)} –{" "}
+                        {b.service_type ?? "Service not provided"} • {formatDateTime(b.start_time)} –{" "}
                         {formatDateTime(b.end_time)}
                       </div>
 
-                      {b.notes && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          Notes: {b.notes}
-                        </div>
-                      )}
+                      <Button type="button" size="sm" variant="outline" className="mt-2 self-start"
+                        aria-haspopup="dialog"
+                        aria-label={`View details for ${petInfo?.name ?? "booking"} on ${formatDateTime(b.start_time)}`}
+                        onClick={(event) => {
+                          detailsTriggerRef.current = event.currentTarget;
+                          setSelectedBooking(b);
+                        }}>
+                        View details
+                      </Button>
                     </motion.li>
                   );
                 })}
@@ -264,6 +282,48 @@ export default function BookingsPage() {
           </Card>
         )}
       </PageSection>
+      <dialog ref={dialogRef} aria-labelledby="booking-details-title"
+        className="fixed inset-0 m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg overflow-y-auto overscroll-contain rounded-xl border bg-card p-6 text-card-foreground shadow-lg backdrop:bg-black/50"
+        onClose={() => {
+          setSelectedBooking(null);
+          detailsTriggerRef.current?.focus();
+          detailsTriggerRef.current = null;
+        }}>
+        {selectedBooking && (
+          <div className="min-w-0 space-y-5">
+            <div className="flex items-start justify-between gap-4">
+              <h2 id="booking-details-title" className="text-lg font-semibold">Booking details</h2>
+              <Button type="button" size="sm" variant="outline" onClick={() => dialogRef.current?.close()}>
+                Close
+              </Button>
+            </div>
+            <dl className="space-y-4 text-sm [&_dt]:font-medium [&_dd]:mt-1 [&_dd]:break-words [&_dd]:text-muted-foreground">
+              <div>
+                <dt>Pet</dt>
+                <dd>{selectedBooking.pet
+                  ? `${selectedBooking.pet.name} (${selectedBooking.pet.type ?? "Type not provided"})`
+                  : "Pet details unavailable"}</dd>
+              </div>
+              <div><dt>Provider</dt><dd>{selectedBooking.provider?.display_name ?? "Provider details unavailable"}</dd></div>
+              <div><dt>Service type</dt><dd className="capitalize">{selectedBooking.service_type ?? "Not provided"}</dd></div>
+              <div>
+                <dt>Status</dt>
+                <dd><StatusBadge tone={getStatusTone(selectedBooking.status)}>{formatStatus(selectedBooking.status)}</StatusBadge></dd>
+              </div>
+              <div><dt>Start</dt><dd>{formatDateTime(selectedBooking.start_time)}</dd></div>
+              <div><dt>End</dt><dd>{formatDateTime(selectedBooking.end_time)}</dd></div>
+              <div>
+                <dt>Total price</dt>
+                <dd>{selectedBooking.total_price == null ? "Not provided" : new Intl.NumberFormat("en-US", {
+                  style: "currency", currency: "USD",
+                }).format(selectedBooking.total_price)}</dd>
+              </div>
+              <div><dt>Notes</dt><dd className="whitespace-pre-wrap [overflow-wrap:anywhere]">{selectedBooking.notes?.trim() ? selectedBooking.notes : "Not provided"}</dd></div>
+              <div className="text-xs"><dt>Booking reference</dt><dd>{selectedBooking.id}</dd></div>
+            </dl>
+          </div>
+        )}
+      </dialog>
     </PageShell>
   );
 }

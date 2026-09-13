@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabaseBrowser";
@@ -26,7 +26,7 @@ type Pet = {
   id: string;
   owner_id: string;
   name: string;
-  type: "dog" | "cat" | "other";
+  type: "dog" | "cat" | "other" | null;
   breed: string | null;
   age: number | null;
   notes: string | null;
@@ -41,6 +41,13 @@ export default function PetsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [editingPetId, setEditingPetId] = useState<string | null>(null);
+  const [deletingPetId, setDeletingPetId] = useState<string | null>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const editTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const mutationRef = useRef(false);
+  const isBusy = isSaving || deletingPetId !== null;
 
   // New pet form state
   const [name, setName] = useState("");
@@ -82,56 +89,104 @@ export default function PetsPage() {
     loadPets();
   }, [router]);
 
-  const handleAddPet = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!userId) return;
+  const resetForm = () => {
+    setEditingPetId(null);
+    setName("");
+    setType("dog");
+    setBreed("");
+    setAge("");
+    setNotes("");
+  };
 
-    setIsSaving(true);
+  const restoreEditorFocus = () => {
+    requestAnimationFrame(() => {
+      const trigger = editTriggerRef.current;
+      if (trigger?.isConnected) trigger.focus();
+      else nameInputRef.current?.focus();
+      editTriggerRef.current = null;
+    });
+  };
+
+  const handleEditPet = (pet: Pet, trigger: HTMLButtonElement) => {
+    if (mutationRef.current) return;
+    editTriggerRef.current = trigger;
+    setEditingPetId(pet.id);
+    setName(pet.name);
+    setType(pet.type);
+    setBreed(pet.breed ?? "");
+    setAge(pet.age == null ? "" : String(pet.age));
+    setNotes(pet.notes ?? "");
     setErrorMsg(null);
+    setSuccessMsg(null);
+    nameInputRef.current?.focus();
+    nameInputRef.current?.scrollIntoView({ block: "center" });
+  };
 
-    const { data, error } = await supabase
-      .from("pets")
-      .insert({
-        owner_id: userId,
-        name,
-        type,
-        breed: breed || null,
-        age: age === "" ? null : Number(age),
-        notes: notes || null,
-      })
-      .select("id, owner_id, name, type, breed, age, notes")
-      .single();
-
-    setIsSaving(false);
-
-    if (error) {
-      console.error("Error adding pet:", error);
-      setErrorMsg("Failed to add pet.");
+  const handleSavePet = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userId || mutationRef.current) return;
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    const parsedAge = age.trim() === "" ? null : Number(age);
+    if (!name.trim()) {
+      setErrorMsg("Enter a pet name.");
+      nameInputRef.current?.focus();
       return;
     }
-
-    if (data) {
-      setPets((prev) => [...prev, data as Pet]);
-      setName("");
-      setType("dog");
-      setBreed("");
-      setAge("");
-      setNotes("");
+    if (parsedAge !== null && (!Number.isInteger(parsedAge) || parsedAge < 0)) {
+      setErrorMsg("Age must be a nonnegative whole number or left blank.");
+      return;
+    }
+    mutationRef.current = true;
+    setIsSaving(true);
+    const fields = {
+      name: name.trim(), type, breed: breed.trim() || null,
+      age: parsedAge, notes: notes.trim() || null,
+    };
+    try {
+      const query = editingPetId
+        ? supabase.from("pets").update(fields).eq("id", editingPetId).eq("owner_id", userId)
+        : supabase.from("pets").insert({ ...fields, owner_id: userId });
+      const { data, error } = await query
+        .select("id, owner_id, name, type, breed, age, notes").single();
+      if (error || !data) throw error ?? new Error("No pet returned");
+      const savedPet = data as Pet;
+      setPets((prev) => editingPetId
+        ? prev.map((pet) => pet.id === editingPetId ? savedPet : pet)
+        : [...prev, savedPet]);
+      setSuccessMsg(editingPetId ? "Pet details saved." : "Pet added.");
+      resetForm();
+      restoreEditorFocus();
+    } catch (error) {
+      console.error("Error saving pet:", error);
+      setErrorMsg(editingPetId ? "Failed to save pet. Please try again." : "Failed to add pet. Please try again.");
+    } finally {
+      mutationRef.current = false;
+      setIsSaving(false);
     }
   };
 
   const handleDeletePet = async (petId: string) => {
-    if (!confirm("Delete this pet?")) return;
-
-    const { error } = await supabase.from("pets").delete().eq("id", petId);
-
-    if (error) {
+    if (!userId || mutationRef.current || !confirm("Delete this pet?")) return;
+    mutationRef.current = true;
+    setDeletingPetId(petId);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    try {
+      const { data, error } = await supabase.from("pets").delete()
+        .eq("id", petId).eq("owner_id", userId).select("id").single();
+      if (error || !data) throw error ?? new Error("No pet deleted");
+      setPets((prev) => prev.filter((p) => p.id !== data.id));
+      if (editingPetId === data.id) resetForm();
+      setSuccessMsg("Pet deleted.");
+      requestAnimationFrame(() => nameInputRef.current?.focus());
+    } catch (error) {
       console.error("Error deleting pet:", error);
-      alert("Failed to delete pet.");
-      return;
+      setErrorMsg("Pet could not be deleted. Please refresh and try again.");
+    } finally {
+      mutationRef.current = false;
+      setDeletingPetId(null);
     }
-
-    setPets((prev) => prev.filter((p) => p.id !== petId));
   };
 
   // Skeleton loading state
@@ -153,7 +208,7 @@ export default function PetsPage() {
                       key={idx}
                       className="flex items-start justify-between border rounded-md px-3 py-2 text-sm animate-pulse"
                     >
-                      <div className="space-y-1">
+                <div className="space-y-1">
                         <div className="h-4 w-28 bg-gray-100 rounded-md" />
                         <div className="h-3 w-24 bg-gray-100 rounded-md" />
                         <div className="h-3 w-16 bg-gray-100 rounded-md" />
@@ -260,7 +315,7 @@ export default function PetsPage() {
                         <h3 className="text-base leading-5">{pet.name}</h3>
                       </CardTitle>
                       <p className="text-sm capitalize text-muted-foreground">
-                        {pet.type}
+                        {pet.type ?? "Type not provided"}
                         {pet.breed ? ` · ${pet.breed}` : ""}
                       </p>
                     </CardHeader>
@@ -285,17 +340,24 @@ export default function PetsPage() {
                       ) : null}
                     </CardContent>
 
-                    <CardFooter className="justify-end border-t px-4 py-3">
+                    <CardFooter className="justify-end gap-2 border-t px-4 py-3">
+                      <Button type="button" size="sm" variant="outline"
+                        disabled={isBusy} aria-label={`Edit ${pet.name}`}
+                        onClick={(event) => handleEditPet(pet, event.currentTarget)}>
+                        Edit
+                      </Button>
                       <MotionButton
                         type="button"
                         size="sm"
                         variant="outline"
                         className="text-xs"
                         onClick={() => handleDeletePet(pet.id)}
+                        disabled={isBusy}
+                        aria-label={`Delete ${pet.name}`}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                       >
-                        Delete
+                        {deletingPetId === pet.id ? "Deleting..." : "Delete"}
                       </MotionButton>
                     </CardFooter>
                   </Card>
@@ -306,90 +368,111 @@ export default function PetsPage() {
         </PageSection>
 
         {/* Add pet form */}
-        <PageSection id="add-pet" title="Add a pet" className="scroll-mt-24">
+        <PageSection id="add-pet" title={editingPetId ? "Edit pet" : "Add a pet"} className="scroll-mt-24">
           <Card>
             <CardContent>
-              <form className="space-y-3" onSubmit={handleAddPet}>
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-gray-700">
-                    Name
-                  </label>
-                  <Input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    placeholder="Pet name"
-                  />
-                </div>
+              <form className="space-y-3" onSubmit={handleSavePet} aria-busy={isBusy}>
+                <fieldset disabled={isBusy} className="min-w-0 space-y-3">
+                  <div className="space-y-1">
+                    <label htmlFor="pet-name" className="block text-xs font-medium text-gray-700">
+                      Name
+                    </label>
+                    <Input
+                      id="pet-name"
+                      ref={nameInputRef}
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                      placeholder="Pet name"
+                    />
+                  </div>
 
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-gray-700">
-                    Type
-                  </label>
-                  <select
-                    className="w-full border rounded-md px-3 py-2 text-sm"
-                    value={type}
-                    onChange={(e) =>
-                      setType(e.target.value as Pet["type"])
-                    }
-                  >
-                    <option value="dog">Dog</option>
-                    <option value="cat">Cat</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
+                  <div className="space-y-1">
+                    <label htmlFor="pet-type" className="block text-xs font-medium text-gray-700">
+                      Type
+                    </label>
+                    <select
+                      id="pet-type"
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      value={type ?? ""}
+                      onChange={(e) =>
+                        setType((e.target.value || null) as Pet["type"])
+                      }
+                    >
+                      <option value="" disabled>Type not provided</option>
+                      <option value="dog">Dog</option>
+                      <option value="cat">Cat</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
 
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-gray-700">
-                    Breed (optional)
-                  </label>
-                  <Input
-                    value={breed}
-                    onChange={(e) => setBreed(e.target.value)}
-                    placeholder="e.g. Golden Retriever"
-                  />
-                </div>
+                  <div className="space-y-1">
+                    <label htmlFor="pet-breed" className="block text-xs font-medium text-gray-700">
+                      Breed (optional)
+                    </label>
+                    <Input
+                      id="pet-breed"
+                      value={breed}
+                      onChange={(e) => setBreed(e.target.value)}
+                      placeholder="e.g. Golden Retriever"
+                    />
+                  </div>
 
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-gray-700">
-                    Age (optional)
-                  </label>
-                  <Input
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={age}
-                    onChange={(e) => setAge(e.target.value)}
-                    placeholder="e.g. 3"
-                  />
-                </div>
+                  <div className="space-y-1">
+                    <label htmlFor="pet-age" className="block text-xs font-medium text-gray-700">
+                      Age (optional)
+                    </label>
+                    <Input
+                      id="pet-age"
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={age}
+                      onChange={(e) => setAge(e.target.value)}
+                      placeholder="e.g. 3"
+                    />
+                  </div>
 
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-gray-700">
-                    Notes (optional)
-                  </label>
-                  <textarea
-                    className="w-full border rounded-md px-3 py-2 text-sm"
-                    rows={3}
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Any special care instructions."
-                  />
-                </div>
+                  <div className="space-y-1">
+                    <label htmlFor="pet-notes" className="block text-xs font-medium text-gray-700">
+                      Notes (optional)
+                    </label>
+                    <textarea
+                      id="pet-notes"
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      rows={3}
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Any special care instructions."
+                    />
+                  </div>
+                </fieldset>
 
                 {errorMsg && (
                   <FeedbackAlert variant="error">{errorMsg}</FeedbackAlert>
                 )}
+                {successMsg && <FeedbackAlert variant="success">{successMsg}</FeedbackAlert>}
 
                 <MotionButton
                   type="submit"
                   className="w-full rounded-full"
-                  disabled={isSaving}
+                  disabled={isBusy}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.97 }}
                 >
-                  {isSaving ? "Adding..." : "Add pet"}
+                  {isSaving ? "Saving..." : editingPetId ? "Save changes" : "Add pet"}
                 </MotionButton>
+                {editingPetId && (
+                  <Button type="button" variant="outline" className="w-full rounded-full"
+                    disabled={isBusy} onClick={() => {
+                      resetForm();
+                      setErrorMsg(null);
+                      setSuccessMsg(null);
+                      restoreEditorFocus();
+                    }}>
+                    Cancel
+                  </Button>
+                )}
               </form>
             </CardContent>
           </Card>
