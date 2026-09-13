@@ -26,6 +26,16 @@ export function getSupabaseBrowserClient() {
     },
   });
 
+  // Dashboard recovery emails use the Site URL instead of our reset route.
+  // The SDK has saved the session and removed URL tokens before this event.
+  if (typeof window !== "undefined") {
+    client.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY" && window.location.pathname !== "/auth/reset-password") {
+        window.location.replace("/auth/reset-password");
+      }
+    });
+  }
+
   return client;
 }
 

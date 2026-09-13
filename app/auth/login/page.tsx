@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseBrowser";
 
@@ -18,6 +18,34 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [forgotPassword, setForgotPassword] = useState(false);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const submitting = useRef(false);
+
+  const handleRecovery = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (submitting.current) return;
+    submitting.current = true;
+    setIsLoading(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+      // Do not expose account existence or account-specific server errors.
+      if (error && (error.status === 429 || (error.status ?? 0) >= 500)) {
+        setErrorMsg("Unable to send a reset link right now. Please try again later.");
+      } else {
+        setSuccessMsg("If an account exists for that email, you’ll receive a password reset link.");
+      }
+    } catch {
+      setErrorMsg("Unable to send a reset link right now. Please try again later.");
+    } finally {
+      submitting.current = false;
+      setIsLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,13 +71,13 @@ export default function LoginPage() {
     <PageShell>
       <div className="mx-auto max-w-md space-y-8">
         <PageHeader
-          title="Log in to PetCare Hub"
-          description="Access your pets, bookings, and provider workspace."
+          title={forgotPassword ? "Forgot your password?" : "Log in to PetCare Hub"}
+          description={forgotPassword ? "Enter your email to request a password reset link." : "Access your pets, bookings, and provider workspace."}
         />
         <PageSection aria-label="Login form">
           <Card>
             <CardContent>
-              <form className="space-y-4" onSubmit={handleLogin}>
+              <form className="space-y-4" onSubmit={forgotPassword ? handleRecovery : handleLogin} aria-busy={isLoading}>
                 <div className="space-y-2">
                   <label
                     htmlFor="login-email"
@@ -70,7 +98,7 @@ export default function LoginPage() {
                   />
                 </div>
 
-                <div className="space-y-2">
+                {!forgotPassword && <div className="space-y-2">
                   <label
                     htmlFor="login-password"
                     className="block text-sm font-medium text-foreground"
@@ -88,18 +116,28 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                   />
-                </div>
+                </div>}
 
                 {errorMsg && (
                   <FeedbackAlert variant="error">{errorMsg}</FeedbackAlert>
                 )}
+                {successMsg && <FeedbackAlert variant="success">{successMsg}</FeedbackAlert>}
+                {isLoading && <p role="status" className="text-sm text-muted-foreground">{forgotPassword ? "Sending reset link..." : "Signing in..."}</p>}
 
                 <Button
                   type="submit"
                   className="w-full rounded-full"
                   disabled={isLoading}
                 >
-                  {isLoading ? "Logging in..." : "Log In"}
+                  {forgotPassword ? (isLoading ? "Sending..." : "Send reset link") : (isLoading ? "Logging in..." : "Log In")}
+                </Button>
+                <Button type="button" variant="link" className="w-full" disabled={isLoading} onClick={() => {
+                  setForgotPassword(!forgotPassword);
+                  setErrorMsg(null);
+                  setSuccessMsg(null);
+                  setPassword("");
+                }}>
+                  {forgotPassword ? "Back to login" : "Forgot password?"}
                 </Button>
               </form>
             </CardContent>
