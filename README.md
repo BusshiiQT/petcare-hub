@@ -17,7 +17,7 @@ Book providers based on real availability
 
 View and manage upcoming bookings
 
-Leave reviews after completed services
+Create reviews only for your own completed bookings, with one review per booking
 
 Service Providers
 
@@ -74,11 +74,11 @@ Real Production RLS (Not Demo Policies)
 
 Each table has explicit RLS rules:
 
-Owners can only access their own pets, bookings, and reviews
+Owners can only access their own pets and bookings; review creation requires their own completed booking
 
 Providers can only manage availability and bookings tied to their profile
 
-Authenticated users can read active provider profiles and reviews
+Authenticated users can read active provider profiles and all reviews, including preserved legacy reviews
 
 This mirrors real SaaS data-security requirements.
 

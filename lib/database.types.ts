@@ -246,6 +246,7 @@ export type Database = {
       }
       reviews: {
         Row: {
+          booking_id: string | null
           comment: string | null
           created_at: string
           id: string
@@ -254,6 +255,7 @@ export type Database = {
           rating: number
         }
         Insert: {
+          booking_id?: string | null
           comment?: string | null
           created_at?: string
           id?: string
@@ -262,6 +264,7 @@ export type Database = {
           rating: number
         }
         Update: {
+          booking_id?: string | null
           comment?: string | null
           created_at?: string
           id?: string
@@ -270,6 +273,13 @@ export type Database = {
           rating?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "reviews_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "reviews_provider_profile_id_fkey"
             columns: ["provider_profile_id"]
@@ -284,6 +294,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_review_for_booking: {
+        Args: { booking_id: string; comment: string; rating: number }
+        Returns: {
+          booking_id: string | null
+          comment: string | null
+          created_at: string
+          id: string
+          owner_id: string
+          provider_profile_id: string
+          rating: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "reviews"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       transition_provider_booking: {
         Args: {
           booking_id: string
